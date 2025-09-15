@@ -1,0 +1,26 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "NODE_OPTIONS=\"--require ./scripts/preload-filter.js\" nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "start": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.1.2",
+    "formidable": "^3.5.4",
+    "googleapis": "^140.0.1",
+    "nuxt": "3.12.3",
+    "openai": "^4.52.7",
+    "vue": "latest",
+    "youtube-captions-scraper": "^2.0.3",
+    "yt-dlp-exec": "^1.0.2"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.1"
+  }
+}
