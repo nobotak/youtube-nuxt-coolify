@@ -1,43 +1,51 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { readMultipartFormData, getHeader } from 'h3';
+import formidable from 'formidable';
+import { getHeader } from 'h3';
 import { replaceDatabaseFromFile, DB_PATH } from '~/server/db';
 
 export default defineEventHandler(async (event) => {
   const ct = getHeader(event, 'content-type');
   console.log(`[upload] Incoming request. content-type=${ct}`);
 
-  // Single-pass: use H3 multipart parser only to avoid double-reading the request stream
-  let tmpPath: string | null = null;
   let tmpDirCreated: string | null = null;
   let originalName: string | undefined;
+  let tmpPath: string | null = null;
   let bytes = 0;
 
   try {
-    const parts = await readMultipartFormData(event);
-    if (!parts || parts.length === 0) {
+    // Use formidable only to parse streaming multipart reliably
+    const form = formidable({ multiples: false, uploadDir: fs.mkdtempSync(path.join(os.tmpdir(), 'db-upload-')), keepExtensions: true });
+    tmpDirCreated = form.uploadDir as string;
+
+    const { files } = await new Promise<{ files: formidable.Files }>((resolve, reject) => {
+      form.parse(event.node.req, (err, _fields, files) => {
+        if (err) return reject(err);
+        resolve({ files });
+      });
+    });
+
+    const f = files?.file as formidable.File | undefined;
+    if (!f || Array.isArray(f)) {
       throw createError({ statusCode: 400, statusMessage: 'Upload field "file" is required' });
     }
 
-    const filePart = parts.find((p) => p.name === 'file' && p.type === 'file');
-    if (!filePart || !filePart.filename || !filePart.data) {
-      throw createError({ statusCode: 400, statusMessage: 'Upload field "file" is required' });
-    }
+    originalName = f.originalFilename || 'database.db';
+    tmpPath = f.filepath;
+    bytes = typeof f.size === 'number' ? f.size : 0;
 
-    originalName = filePart.filename;
-    // Validate SQLite by magic header instead of relying on .db extension
-    const header = Buffer.from(filePart.data).toString('utf8', 0, 16);
-    const isSQLite = header.startsWith('SQLite format 3');
+    // Validate SQLite by magic header
+    const fd = fs.openSync(tmpPath, 'r');
+    const buf = Buffer.alloc(16);
+    fs.readSync(fd, buf, 0, 16, 0);
+    fs.closeSync(fd);
+    const isSQLite = buf.toString('utf8').startsWith('SQLite format 3');
     if (!isSQLite) {
       throw createError({ statusCode: 400, statusMessage: 'Uploaded file is not a valid SQLite database' });
     }
 
-    tmpDirCreated = fs.mkdtempSync(path.join(os.tmpdir(), 'db-upload-'));
-    tmpPath = path.join(tmpDirCreated, originalName);
-    fs.writeFileSync(tmpPath, filePart.data);
-    bytes = filePart.data.length || 0;
-    console.log(`[upload] Received file. name=${originalName} bytes=${bytes} tmp=${tmpPath}`);
+    console.log(`[upload] Received file via formidable. name=${originalName} bytes=${bytes} tmp=${tmpPath}`);
 
     console.log(`[upload] Replacing database... target=${DB_PATH}`);
     replaceDatabaseFromFile(tmpPath);
