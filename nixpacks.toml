@@ -1,5 +1,5 @@
 [phases.setup]
-aptPkgs = ["yt-dlp", "ffmpeg"]
+aptPkgs = ["yt-dlp", "ffmpeg", "python3", "python-is-python3"]
 
 [start]
 cmd = "npm run start"
