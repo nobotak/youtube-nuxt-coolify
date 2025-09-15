@@ -26,8 +26,11 @@ export default defineEventHandler(async (event) => {
     }
 
     originalName = filePart.filename;
-    if (!originalName.endsWith('.db')) {
-      throw createError({ statusCode: 400, statusMessage: 'Only .db SQLite files are allowed' });
+    // Validate SQLite by magic header instead of relying on .db extension
+    const header = Buffer.from(filePart.data).toString('utf8', 0, 16);
+    const isSQLite = header.startsWith('SQLite format 3');
+    if (!isSQLite) {
+      throw createError({ statusCode: 400, statusMessage: 'Uploaded file is not a valid SQLite database' });
     }
 
     tmpDirCreated = fs.mkdtempSync(path.join(os.tmpdir(), 'db-upload-'));
