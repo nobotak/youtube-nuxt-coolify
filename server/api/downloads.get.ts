@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import { getDownloadsDirectoryPath } from '~/server/utils/downloader';
 
 export default defineEventHandler((event) => {
-  const downloadsDir = path.join(process.cwd(), 'downloads');
+  const downloadsDir = getDownloadsDirectoryPath();
   
   if (!fs.existsSync(downloadsDir)) {
     return [];
