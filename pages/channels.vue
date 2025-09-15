@@ -1,29 +1,73 @@
 <template>
   <div>
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
       <h1 class="text-3xl font-bold">Channels</h1>
-      <button @click="showAddChannelModal = true" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600">
-        + Add Channel
-      </button>
+      <div class="flex items-center gap-2">
+        <div class="bg-gray-100 rounded p-1 inline-flex">
+          <button class="px-3 py-1 rounded text-sm"
+                  :class="viewMode === 'cards' ? 'bg-white shadow text-gray-800' : 'text-gray-600'"
+                  @click="viewMode = 'cards'">Karty</button>
+          <button class="px-3 py-1 rounded text-sm"
+                  :class="viewMode === 'list' ? 'bg-white shadow text-gray-800' : 'text-gray-600'"
+                  @click="viewMode = 'list'">Lista</button>
+        </div>
+        <button @click="showAddChannelModal = true" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600">
+          + Add Channel
+        </button>
+      </div>
     </div>
 
     <div v-if="pending" class="text-center">Loading...</div>
     <div v-else-if="error" class="text-center text-red-500">Error loading channels.</div>
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="channel in channels" :key="channel.id" class="bg-white p-6 rounded-lg shadow">
+    <!-- Cards view -->
+    <div v-else-if="viewMode === 'cards'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="channel in channels" :key="channel.channel_id" class="bg-white p-6 rounded-lg shadow">
         <div class="flex items-center justify-between">
-            <div class="flex items-center">
-                <img :src="channel.thumbnail_url" alt="Channel thumbnail" class="w-16 h-16 rounded-full mr-4">
-                <div>
-                    <h2 class="text-xl font-bold">{{ channel.channel_name }}</h2>
-                    <p class="text-gray-500">{{ channel.channel_id }}</p>
-                </div>
-            </div>
+          <div class="flex items-center">
+            <img :src="channel.thumbnail_url" alt="Channel thumbnail" class="w-16 h-16 rounded-full mr-4">
             <div>
-                <button @click="deleteChannel(channel.channel_id)" class="text-red-500 hover:text-red-700">
-                    🗑️
-                </button>
+              <h2 class="text-xl font-bold">{{ channel.channel_name }}</h2>
+              <p class="text-gray-500">{{ channel.channel_id }}</p>
             </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs px-2 py-1 rounded-full"
+                  :class="channel.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
+              {{ channel.is_active ? 'Aktywny' : 'Nieaktywny' }}
+            </span>
+            <button @click="deleteChannel(channel.channel_id)" class="text-red-500 hover:text-red-700">🗑️</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- List view -->
+    <div v-else class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="hidden md:grid grid-cols-5 gap-4 px-6 py-3 bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+        <div>Kanał</div>
+        <div>Status</div>
+        <div>Filmów</div>
+        <div>Napisy</div>
+        <div>Akcje</div>
+      </div>
+      <div v-for="channel in channels" :key="channel.channel_id" class="grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 border-t">
+        <div class="flex items-center gap-3">
+          <img :src="channel.thumbnail_url" alt="thumb" class="w-10 h-10 rounded-full"/>
+          <div class="min-w-0">
+            <div class="font-medium truncate" :title="channel.channel_name">{{ channel.channel_name }}</div>
+            <div class="text-gray-500 text-xs truncate" :title="channel.channel_id">{{ channel.channel_id }}</div>
+          </div>
+        </div>
+        <div class="md:text-center">
+          <span class="text-xs px-2 py-1 rounded-full"
+                :class="channel.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
+            {{ channel.is_active ? 'Aktywny' : 'Nieaktywny' }}
+          </span>
+        </div>
+        <div class="md:text-center text-sm">{{ countVideosByChannel(channel.channel_id) }}</div>
+        <div class="md:text-center text-sm">{{ countCaptionsByChannel(channel.channel_id) }}</div>
+        <div class="md:text-center flex items-center gap-2">
+          <button @click="deleteChannel(channel.channel_id)" class="text-red-500 hover:text-red-700">🗑️</button>
         </div>
       </div>
     </div>
@@ -53,12 +97,24 @@
 
 <script setup lang="ts">
 const { data: channels, pending, error, refresh } = await useFetch('/api/channels');
+const { data: videos } = await useFetch('/api/videos');
 
 const showAddChannelModal = ref(false);
 const newChannel = ref({
   channel_id: '',
   api_key: '',
 });
+
+const viewMode = ref<'cards' | 'list'>('cards');
+
+function countVideosByChannel(channelId: string): number {
+  if (!videos.value) return 0;
+  return videos.value.filter((v: any) => v.channel_id === channelId).length;
+}
+function countCaptionsByChannel(channelId: string): number {
+  if (!videos.value) return 0;
+  return videos.value.filter((v: any) => v.channel_id === channelId && !!v.captions).length;
+}
 
 async function addChannel() {
   await $fetch('/api/channels', {
