@@ -128,12 +128,46 @@
         </div>
       </div>
     </div>
+
+    <!-- API Usage section -->
+    <div class="mt-10 bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b">
+        <div class="text-lg font-semibold">Użycie API YouTube</div>
+        <div class="text-gray-500 text-sm">Statystyki zapytań API na dobę</div>
+      </div>
+      <div class="p-6">
+        <div v-if="statsPending" class="text-center">Ładowanie…</div>
+        <div v-else-if="statsError" class="text-center text-red-500">Błąd ładowania statystyk.</div>
+        <div v-else>
+          <div class="mb-4 text-sm text-gray-700">Zużyte dzisiaj: <span class="font-semibold">{{ statsData.apiUsage.used }}</span> jednostek</div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="bg-gray-50 text-gray-600">
+                  <th class="text-left px-4 py-2">Operacja</th>
+                  <th class="text-left px-4 py-2">Liczba</th>
+                  <th class="text-left px-4 py-2">Koszt</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in statsData.apiUsage.breakdown" :key="row.operation" class="border-t">
+                  <td class="px-4 py-2">{{ row.operation }}</td>
+                  <td class="px-4 py-2">{{ row.count }}</td>
+                  <td class="px-4 py-2">{{ row.cost }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 const { data: channels, pending: channelsPending, error: channelsError, refresh: refreshChannels } = await useFetch('/api/channels');
 const { data: videos, pending: videosPending, error: videosError, refresh: refreshVideos } = await useFetch('/api/videos');
+const { data: statsData, pending: statsPending, error: statsError, refresh: refreshStats } = await useFetch('/api/stats');
 
 const stats = computed(() => {
   if (!channels.value || !videos.value) {
@@ -176,7 +210,7 @@ function countAIByChannel(channelId: string): number {
 async function triggerCheckVideos() {
   try {
     await $fetch('/api/tasks/check-videos', { method: 'POST' });
-    await Promise.all([refreshChannels(), refreshVideos()]);
+    await Promise.all([refreshChannels(), refreshVideos(), refreshStats()]);
   } catch (e) {
     // no-op display can be added later
   }
