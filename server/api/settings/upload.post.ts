@@ -26,8 +26,22 @@ export default defineEventHandler(async (event) => {
       });
     });
 
-    const f = files?.file as formidable.File | undefined;
-    if (!f || Array.isArray(f)) {
+    // Accept file from any field name; support single or array
+    let f: formidable.File | undefined;
+    const tryKeys = ['file', 'database', 'db'];
+    for (const key of tryKeys) {
+      const v = (files as any)[key];
+      if (Array.isArray(v)) { if (v[0]) { f = v[0] as formidable.File; break; } }
+      else if (v) { f = v as formidable.File; break; }
+    }
+    if (!f) {
+      for (const key of Object.keys(files)) {
+        const v = (files as any)[key];
+        if (Array.isArray(v)) { if (v[0]) { f = v[0] as formidable.File; break; } }
+        else if (v) { f = v as formidable.File; break; }
+      }
+    }
+    if (!f) {
       throw createError({ statusCode: 400, statusMessage: 'Upload field "file" is required' });
     }
 
