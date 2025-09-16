@@ -85,6 +85,17 @@
             <label for="api_key" class="block text-gray-700">API Key (optional)</label>
             <input type="text" v-model="newChannel.api_key" id="api_key" class="w-full px-3 py-2 border rounded-lg">
           </div>
+          <div class="mb-4">
+            <label class="block text-gray-700">Interwał sprawdzania</label>
+            <div class="flex gap-2">
+              <input type="number" min="5" v-model.number="intervalValue" class="w-1/2 px-3 py-2 border rounded-lg">
+              <select v-model="intervalUnit" class="w-1/2 px-3 py-2 border rounded-lg">
+                <option value="min">minut</option>
+                <option value="h">godzin</option>
+                <option value="d">dni</option>
+              </select>
+            </div>
+          </div>
           <div class="flex justify-end">
             <button type="button" @click="showAddChannelModal = false" class="text-gray-600 mr-4">Cancel</button>
             <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg">Add Channel</button>
@@ -105,6 +116,10 @@ const newChannel = ref({
   api_key: '',
 });
 
+// Interwał: wartość + jednostka (jak w "old")
+const intervalValue = ref<number>(30);
+const intervalUnit = ref<'min' | 'h' | 'd'>('min');
+
 const viewMode = ref<'cards' | 'list'>('cards');
 
 function countVideosByChannel(channelId: string): number {
@@ -117,12 +132,25 @@ function countCaptionsByChannel(channelId: string): number {
 }
 
 async function addChannel() {
+  // Przelicz na milisekundy
+  const minutes = intervalUnit.value === 'min'
+    ? intervalValue.value
+    : intervalUnit.value === 'h'
+      ? intervalValue.value * 60
+      : intervalValue.value * 1440;
+  const checkIntervalMs = Math.max(5, Number(minutes || 0)) * 60_000;
+
   await $fetch('/api/channels', {
     method: 'POST',
-    body: newChannel.value,
+    body: {
+      ...newChannel.value,
+      check_interval: checkIntervalMs,
+    },
   });
   showAddChannelModal.value = false;
   newChannel.value = { channel_id: '', api_key: '' };
+  intervalValue.value = 30;
+  intervalUnit.value = 'min';
   refresh();
 }
 
