@@ -3,7 +3,7 @@ import { db } from '~/server/db';
 export default defineEventHandler((event) => {
   try {
     const stmt = db.prepare(`
-      SELECT v.*, c.channel_name 
+      SELECT v.*, c.channel_name, c.thumbnail_url AS channel_thumbnail
       FROM videos v
       LEFT JOIN channels c ON v.channel_id = c.channel_id
       ORDER BY v.published_at DESC
