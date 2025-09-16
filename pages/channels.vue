@@ -178,19 +178,21 @@ function formatDateTime(value?: string) {
   try { return new Date(value).toLocaleString('pl-PL'); } catch { return String(value); }
 }
 
-async function viewChannel(channelId: string) {
-  window.alert(`Podgląd kanału: ${channelId}`);
+function viewChannel(channelId: string) {
+  const url = `https://youtube.com/channel/${channelId}`;
+  window.open(url, '_blank');
 }
 
 async function refreshChannelNow(channelId: string) {
   try {
-    await $fetch('/api/tasks/check-videos', { method: 'POST' });
+    await $fetch(`/api/channels/${channelId}/check`, { method: 'POST' });
     await refresh();
   } catch {}
 }
 
+const editing = ref<any | null>(null);
 function openEdit(channel: any) {
-  window.alert(`Edytuj: ${channel.channel_name}`);
+  editing.value = { ...channel };
 }
 
 async function confirmRemove(channel: any) {
@@ -230,4 +232,49 @@ async function deleteChannel(channelId: string) {
         refresh();
     }
 }
+
+async function saveEdit() {
+  if (!editing.value) return;
+  const payload: any = {
+    channel_name: editing.value.channel_name,
+    channel_url: editing.value.channel_url,
+    check_interval: editing.value.check_interval,
+    is_active: !!editing.value.is_active,
+  };
+  await $fetch(`/api/channels/${editing.value.channel_id}`, { method: 'PUT', body: payload });
+  editing.value = null;
+  await refresh();
+}
+
+function cancelEdit() {
+  editing.value = null;
+}
 </script>
+
+<template v-if="editing">
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow p-6 w-full max-w-lg">
+      <h3 class="text-xl font-semibold mb-4">Edytuj kanał</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Nazwa</label>
+          <input v-model="editing.channel_name" class="w-full px-3 py-2 border rounded"/>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">URL</label>
+          <input v-model="editing.channel_url" class="w-full px-3 py-2 border rounded"/>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Interwał (ms)</label>
+          <input v-model.number="editing.check_interval" type="number" min="300000" class="w-full px-3 py-2 border rounded"/>
+        </div>
+        <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="editing.is_active"/> Aktywny</label>
+      </div>
+      <div class="mt-5 flex justify-end gap-2">
+        <button @click="cancelEdit" class="px-4 py-2 rounded border">Anuluj</button>
+        <button @click="saveEdit" class="px-4 py-2 rounded bg-blue-600 text-white">Zapisz</button>
+      </div>
+    </div>
+  </div>
+  
+</template>
