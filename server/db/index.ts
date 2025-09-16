@@ -5,11 +5,13 @@ import fs from 'fs';
 const DB_DIR = path.join(process.cwd(), 'server', 'db');
 const DEFAULT_DB_PATH = path.join(DB_DIR, 'youtube_videos.db');
 const ENV_DB_PATH = process.env.DB_FILE || process.env.NUXT_DB_PATH;
-export const DB_PATH = ENV_DB_PATH && fs.existsSync(ENV_DB_PATH) ? ENV_DB_PATH : DEFAULT_DB_PATH;
+// Always prefer explicit env path even if file does not exist yet (so new DB is created on the volume)
+export const DB_PATH = ENV_DB_PATH || DEFAULT_DB_PATH;
 
-// Ensure the directory for the database exists (when using default location)
-if (DB_PATH === DEFAULT_DB_PATH && !fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+// Ensure the directory for the database exists (for either env or default location)
+const DB_PARENT_DIR = path.dirname(DB_PATH);
+if (!fs.existsSync(DB_PARENT_DIR)) {
+  fs.mkdirSync(DB_PARENT_DIR, { recursive: true });
 }
 
 // If DB file doesn't exist yet, try to restore from known locations/backups
