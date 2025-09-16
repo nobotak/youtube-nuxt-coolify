@@ -3,12 +3,12 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
       <h1 class="text-3xl font-bold">Channels</h1>
       <div class="flex items-center gap-2">
-        <div class="bg-gray-100 rounded p-1 inline-flex">
+        <div class="bg-gray-100 dark:bg-gray-700 rounded p-1 inline-flex">
           <button class="px-3 py-1 rounded text-sm"
-                  :class="viewMode === 'cards' ? 'bg-white shadow text-gray-800' : 'text-gray-600'"
+                  :class="viewMode === 'cards' ? 'bg-white dark:bg-gray-200 shadow text-gray-800 dark:text-gray-900' : 'text-gray-600 dark:text-gray-300'"
                   @click="viewMode = 'cards'">Karty</button>
           <button class="px-3 py-1 rounded text-sm"
-                  :class="viewMode === 'list' ? 'bg-white shadow text-gray-800' : 'text-gray-600'"
+                  :class="viewMode === 'list' ? 'bg-white dark:bg-gray-200 shadow text-gray-800 dark:text-gray-900' : 'text-gray-600 dark:text-gray-300'"
                   @click="viewMode = 'list'">Lista</button>
         </div>
         <button @click="showAddChannelModal = true" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600">
