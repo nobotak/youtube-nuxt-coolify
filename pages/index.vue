@@ -138,9 +138,9 @@
         <div v-else>
           <div v-if="recentVideos.length === 0" class="text-sm text-gray-500">Brak nowych filmów w ostatnich 3 dniach.</div>
           <div v-else class="overflow-x-auto">
-            <table class="min-w-full text-sm">
+            <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
               <thead>
-                <tr class="bg-gray-50 text-gray-600">
+                <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                   <th class="text-left px-4 py-2">Video</th>
                   <th class="text-left px-4 py-2">Kanał</th>
                   <th class="text-left px-4 py-2">Data</th>
@@ -149,17 +149,17 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="v in recentVideos" :key="v.video_id" class="border-t">
+                <tr v-for="v in recentVideos" :key="v.video_id" class="border-t border-gray-200 dark:border-gray-700">
                   <td class="px-4 py-2">
                     <a :href="`https://www.youtube.com/watch?v=${v.video_id}`" target="_blank" class="text-blue-600 hover:underline">{{ v.title }}</a>
                   </td>
                   <td class="px-4 py-2">{{ v.channel_name }}</td>
                   <td class="px-4 py-2">{{ new Date(v.published_at).toLocaleString('pl-PL') }}</td>
                   <td class="px-4 py-2">
-                    <span :class="v.captions ? 'text-green-700' : 'text-gray-500'">{{ v.captions ? '✓' : '—' }}</span>
+                    <span :class="v.captions ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{ v.captions ? '✓' : '—' }}</span>
                   </td>
                   <td class="px-4 py-2">
-                    <span :class="v.response ? 'text-blue-700' : 'text-gray-500'">{{ v.response ? '✓' : '—' }}</span>
+                    <span :class="v.response ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'">{{ v.response ? '✓' : '—' }}</span>
                   </td>
                 </tr>
               </tbody>
@@ -170,7 +170,7 @@
     </div>
 
     <!-- API Usage section -->
-    <div class="mt-10 bg-white rounded-lg shadow">
+    <div class="mt-10 bg-white dark:bg-gray-800 rounded-lg shadow">
       <div class="px-6 py-4 border-b">
         <div class="text-lg font-semibold">Użycie API YouTube</div>
         <div class="text-gray-500 text-sm">Statystyki zapytań API na dobę</div>
@@ -179,19 +179,19 @@
         <div v-if="statsPending" class="text-center">Ładowanie…</div>
         <div v-else-if="statsError" class="text-center text-red-500">Błąd ładowania statystyk.</div>
         <div v-else>
-          <div class="mb-2 text-sm text-gray-700">Zużyte dzisiaj: <span class="font-semibold">{{ statsData.apiUsage.used }}</span> jednostek</div>
-          <div class="mb-4 text-sm text-gray-500">Szacowane zapytania/dobę (na podstawie aktywnych kanałów): <span class="font-semibold">{{ statsData.apiExpected.totalPerDay }}</span></div>
+          <div class="mb-2 text-sm text-gray-700 dark:text-gray-300">Zużyte dzisiaj: <span class="font-semibold">{{ statsData.apiUsage.used }}</span> jednostek</div>
+          <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">Szacowane zapytania/dobę (na podstawie aktywnych kanałów): <span class="font-semibold">{{ statsData.apiExpected.totalPerDay }}</span></div>
           <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
+            <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
               <thead>
-                <tr class="bg-gray-50 text-gray-600">
+                <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                   <th class="text-left px-4 py-2">Operacja</th>
                   <th class="text-left px-4 py-2">Liczba</th>
                   <th class="text-left px-4 py-2">Koszt</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in statsData.apiUsage.breakdown" :key="row.operation" class="border-t">
+                <tr v-for="row in statsData.apiUsage.breakdown" :key="row.operation" class="border-t border-gray-200 dark:border-gray-700">
                   <td class="px-4 py-2">{{ row.operation }}</td>
                   <td class="px-4 py-2">{{ row.count }}</td>
                   <td class="px-4 py-2">{{ row.cost }}</td>
@@ -201,18 +201,18 @@
           </div>
 
           <div class="mt-6">
-            <div class="text-sm font-medium mb-2">Szacun dla kanałów (z interwałów)</div>
+            <div class="text-sm font-medium mb-2 dark:text-gray-200">Szacun dla kanałów (z interwałów)</div>
             <div class="overflow-x-auto">
-              <table class="min-w-full text-sm">
+              <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
                 <thead>
-                  <tr class="bg-gray-50 text-gray-600">
+                  <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                     <th class="text-left px-4 py-2">Kanał</th>
                     <th class="text-left px-4 py-2">Zapytania/dobę</th>
                     <th class="text-left px-4 py-2">Interwał (min)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in statsData.apiExpected.breakdown" :key="row.channel_id" class="border-t">
+                  <tr v-for="row in statsData.apiExpected.breakdown" :key="row.channel_id" class="border-t border-gray-200 dark:border-gray-700">
                     <td class="px-4 py-2">{{ row.channel_name }}</td>
                     <td class="px-4 py-2">{{ row.perDay }}</td>
                     <td class="px-4 py-2">{{ Math.round(row.intervalMs / 60000) }}</td>
