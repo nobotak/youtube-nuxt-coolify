@@ -30,12 +30,36 @@
               <p class="text-gray-500">{{ channel.channel_id }}</p>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs px-2 py-1 rounded-full"
-                  :class="channel.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
-              {{ channel.is_active ? 'Aktywny' : 'Nieaktywny' }}
-            </span>
-            <button @click="deleteChannel(channel.channel_id)" class="text-red-500 hover:text-red-700">🗑️</button>
+          <span class="text-xs px-2 py-1 rounded-full"
+                :class="channel.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
+            {{ channel.is_active ? 'Aktywny' : 'Nieaktywny' }}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 mt-4">
+          <div class="bg-gray-50 rounded p-3 text-center">
+            <div class="text-lg font-semibold">{{ countVideosByChannel(channel.channel_id) }}</div>
+            <div class="text-xs text-gray-500">Filmów</div>
+          </div>
+          <div class="bg-gray-50 rounded p-3 text-center">
+            <div class="text-lg font-semibold">{{ countCaptionsByChannel(channel.channel_id) }}</div>
+            <div class="text-xs text-gray-500">Napisów</div>
+          </div>
+          <div class="bg-gray-50 rounded p-3 text-center">
+            <div class="text-lg font-semibold">{{ countAIByChannel(channel.channel_id) }}</div>
+            <div class="text-xs text-gray-500">Analiz AI</div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between pt-3 border-t">
+          <div class="text-xs text-gray-500">
+            Aktualizacja: {{ formatDateTime(channel.last_check) }}
+          </div>
+          <div class="flex items-center gap-2 text-gray-600">
+            <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">👁</button>
+            <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-gray-800" title="Refresh">🔄</button>
+            <button @click="openEdit(channel)" class="hover:text-gray-800" title="Edytuj">✏️</button>
+            <button @click="confirmRemove(channel)" class="text-red-500 hover:text-red-700" title="Usuń">🗑️</button>
           </div>
         </div>
       </div>
@@ -66,8 +90,11 @@
         </div>
         <div class="md:text-center text-sm">{{ countVideosByChannel(channel.channel_id) }}</div>
         <div class="md:text-center text-sm">{{ countCaptionsByChannel(channel.channel_id) }}</div>
-        <div class="md:text-center flex items-center gap-2">
-          <button @click="deleteChannel(channel.channel_id)" class="text-red-500 hover:text-red-700">🗑️</button>
+        <div class="md:text-center flex items-center gap-3">
+          <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">👁</button>
+          <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-gray-800" title="Refresh">🔄</button>
+          <button @click="openEdit(channel)" class="hover:text-gray-800" title="Edytuj">✏️</button>
+          <button @click="confirmRemove(channel)" class="text-red-500 hover:text-red-700" title="Usuń">🗑️</button>
         </div>
       </div>
     </div>
@@ -124,6 +151,36 @@ function countVideosByChannel(channelId: string): number {
 function countCaptionsByChannel(channelId: string): number {
   if (!videos.value) return 0;
   return videos.value.filter((v: any) => v.channel_id === channelId && !!v.captions).length;
+}
+function countAIByChannel(channelId: string): number {
+  if (!videos.value) return 0;
+  return videos.value.filter((v: any) => v.channel_id === channelId && !!v.response).length;
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return 'Nigdy';
+  try { return new Date(value).toLocaleString('pl-PL'); } catch { return String(value); }
+}
+
+async function viewChannel(channelId: string) {
+  window.alert(`Podgląd kanału: ${channelId}`);
+}
+
+async function refreshChannelNow(channelId: string) {
+  try {
+    await $fetch('/api/tasks/check-videos', { method: 'POST' });
+    await refresh();
+  } catch {}
+}
+
+function openEdit(channel: any) {
+  window.alert(`Edytuj: ${channel.channel_name}`);
+}
+
+async function confirmRemove(channel: any) {
+  if (confirm(`Czy na pewno usunąć kanał "${channel.channel_name}"?`)) {
+    await deleteChannel(channel.channel_id);
+  }
 }
 
 async function addChannel() {

@@ -3,7 +3,7 @@ import { getLatestVideos } from '~/server/utils/youtube';
 import { parseISO8601Duration } from '~/server/utils/formatters';
 import { getCaptions } from '~/server/utils/captions';
 
-async function checkChannelVideos(channel: any) {
+export async function checkChannelVideos(channel: any) {
   console.log(`Checking videos for channel: ${channel.channel_name}`);
   
   try {
