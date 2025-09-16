@@ -21,7 +21,7 @@
     <div v-else-if="error" class="text-center text-red-500">Error loading channels.</div>
     <!-- Cards view -->
     <div v-else-if="viewMode === 'cards'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="channel in channels" :key="channel.channel_id" class="bg-white p-6 rounded-lg shadow">
+      <div v-for="channel in channels" :key="channel.channel_id" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div class="flex items-center justify-between">
           <div class="flex items-center">
             <img :src="channel.thumbnail_url" alt="Channel thumbnail" class="w-16 h-16 rounded-full mr-4">
@@ -74,8 +74,8 @@
     </div>
 
     <!-- List view -->
-    <div v-else class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="hidden md:grid grid-cols-5 gap-4 px-6 py-3 bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+    <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div class="hidden md:grid grid-cols-5 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
         <div>Kanał</div>
         <div>Status</div>
         <div>Filmów</div>

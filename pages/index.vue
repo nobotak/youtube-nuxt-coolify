@@ -1,11 +1,11 @@
 <template>
   <div>
     <h1 class="text-3xl font-bold">Dashboard</h1>
-    <p class="mt-2 text-gray-600">Welcome to your YouTube Manager dashboard.</p>
+    <p class="mt-2 text-gray-600 dark:text-gray-300">Welcome to your YouTube Manager dashboard.</p>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
       <!-- Total Channels -->
-      <div class="bg-white p-6 rounded-lg shadow">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div class="flex items-center">
           <div class="bg-blue-500 text-white p-3 rounded-full">
             <span class="text-2xl">📺</span>
@@ -18,7 +18,7 @@
       </div>
 
       <!-- Active Channels -->
-      <div class="bg-white p-6 rounded-lg shadow">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div class="flex items-center">
           <div class="bg-green-500 text-white p-3 rounded-full">
             <span class="text-2xl">●</span>
@@ -31,7 +31,7 @@
       </div>
 
       <!-- Total Videos -->
-      <div class="bg-white p-6 rounded-lg shadow">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div class="flex items-center">
           <div class="bg-purple-500 text-white p-3 rounded-full">
             <span class="text-2xl">🎬</span>
@@ -44,7 +44,7 @@
       </div>
 
       <!-- AI Analysis -->
-      <div class="bg-white p-6 rounded-lg shadow">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div class="flex items-center">
           <div class="bg-red-500 text-white p-3 rounded-full">
             <span class="text-2xl">⚡</span>
@@ -81,7 +81,7 @@
         <div v-if="channelsPending" class="text-center">Ładowanie kanałów...</div>
         <div v-else-if="channelsError" class="text-center text-red-500">Błąd ładowania kanałów.</div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="ch in channelsData" :key="ch.channel_id" class="bg-white p-6 rounded-lg shadow">
+          <div v-for="ch in channelsData" :key="ch.channel_id" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <div class="flex items-center justify-between">
               <div class="flex items-center">
                 <img :src="ch.thumbnail_url" alt="thumb" class="w-16 h-16 rounded-full mr-4"/>
@@ -99,8 +99,8 @@
       </div>
 
       <!-- List view -->
-      <div v-else class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="hidden md:grid grid-cols-5 gap-4 px-6 py-3 bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+      <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div class="hidden md:grid grid-cols-5 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
           <div>Kanał</div>
           <div>Status</div>
           <div>Filmy</div>
@@ -128,7 +128,7 @@
     </div>
 
     <!-- Recent videos (last 3 days) -->
-    <div class="mt-10 bg-white rounded-lg shadow">
+    <div class="mt-10 bg-white dark:bg-gray-800 rounded-lg shadow">
       <div class="px-6 py-4 border-b">
         <div class="text-lg font-semibold">Nowe filmy (ostatnie 3 dni)</div>
       </div>
