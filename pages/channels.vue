@@ -82,10 +82,6 @@
             <input type="text" v-model="newChannel.channel_id" id="channel_id" class="w-full px-3 py-2 border rounded-lg" required>
           </div>
           <div class="mb-4">
-            <label for="api_key" class="block text-gray-700">API Key (optional)</label>
-            <input type="text" v-model="newChannel.api_key" id="api_key" class="w-full px-3 py-2 border rounded-lg">
-          </div>
-          <div class="mb-4">
             <label class="block text-gray-700">Interwał sprawdzania</label>
             <div class="flex gap-2">
               <input type="number" min="5" v-model.number="intervalValue" class="w-1/2 px-3 py-2 border rounded-lg">
@@ -113,7 +109,6 @@ const { data: videos } = await useFetch('/api/videos');
 const showAddChannelModal = ref(false);
 const newChannel = ref({
   channel_id: '',
-  api_key: '',
 });
 
 // Interwał: wartość + jednostka (jak w "old")
@@ -148,7 +143,7 @@ async function addChannel() {
     },
   });
   showAddChannelModal.value = false;
-  newChannel.value = { channel_id: '', api_key: '' };
+  newChannel.value = { channel_id: '' };
   intervalValue.value = 30;
   intervalUnit.value = 'min';
   refresh();
