@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { recordApiUsage } from '~/server/utils/usage';
 
 const youtube = google.youtube('v3');
 
@@ -92,6 +93,7 @@ export async function getChannelInfo(channelId: string, apiKey: string = GLOBAL_
       part: ['snippet', 'statistics'],
       id: [channelId],
     });
+    try { recordApiUsage('channels.list', 1); } catch {}
 
     if (!response.data.items || response.data.items.length === 0) {
       throw new Error('Channel not found');
@@ -135,6 +137,7 @@ export async function getLatestVideos(channelId: string, apiKey: string = GLOBAL
       maxResults: 10,
       type: ['video']
     });
+    try { recordApiUsage('search.list', 1); } catch {}
 
     if (!response.data.items) {
       return [];
@@ -147,6 +150,7 @@ export async function getLatestVideos(channelId: string, apiKey: string = GLOBAL
         part: ['contentDetails', 'snippet'],
         id: videoIds,
     });
+    try { recordApiUsage('videos.list', Math.max(1, videoIds.length)); } catch {}
     
     return videoDetailsResponse.data.items || [];
 

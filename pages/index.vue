@@ -139,7 +139,8 @@
         <div v-if="statsPending" class="text-center">Ładowanie…</div>
         <div v-else-if="statsError" class="text-center text-red-500">Błąd ładowania statystyk.</div>
         <div v-else>
-          <div class="mb-4 text-sm text-gray-700">Zużyte dzisiaj: <span class="font-semibold">{{ statsData.apiUsage.used }}</span> jednostek</div>
+          <div class="mb-2 text-sm text-gray-700">Zużyte dzisiaj: <span class="font-semibold">{{ statsData.apiUsage.used }}</span> jednostek</div>
+          <div class="mb-4 text-sm text-gray-500">Szacowane zapytania/dobę (na podstawie aktywnych kanałów): <span class="font-semibold">{{ statsData.apiExpected.totalPerDay }}</span></div>
           <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
               <thead>
@@ -157,6 +158,28 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="mt-6">
+            <div class="text-sm font-medium mb-2">Szacun dla kanałów (z interwałów)</div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-50 text-gray-600">
+                    <th class="text-left px-4 py-2">Kanał</th>
+                    <th class="text-left px-4 py-2">Zapytania/dobę</th>
+                    <th class="text-left px-4 py-2">Interwał (min)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in statsData.apiExpected.breakdown" :key="row.channel_id" class="border-t">
+                    <td class="px-4 py-2">{{ row.channel_name }}</td>
+                    <td class="px-4 py-2">{{ row.perDay }}</td>
+                    <td class="px-4 py-2">{{ Math.round(row.intervalMs / 60000) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
