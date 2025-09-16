@@ -56,6 +56,17 @@
     </div>
 
   </div>
+  
+  <!-- Modals: Captions / AI -->
+  <div v-if="showCaptionsModal || showAIModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeModals">
+    <div class="bg-white rounded-lg shadow p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-semibold">{{ modalTitle }}</h3>
+        <button @click="closeModals" class="text-gray-600">✕</button>
+      </div>
+      <div class="whitespace-pre-wrap text-sm text-gray-800">{{ modalContent }}</div>
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
 const { data: videos, pending, error, refresh } = await useFetch('/api/videos');
@@ -104,15 +115,3 @@ function closeModals() {
   showAIModal.value = false;
 }
 </script>
-
-<template v-if="showCaptionsModal || showAIModal">
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeModals">
-    <div class="bg-white rounded-lg shadow p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-semibold">{{ modalTitle }}</h3>
-        <button @click="closeModals" class="text-gray-600">✕</button>
-      </div>
-      <div class="whitespace-pre-wrap text-sm text-gray-800">{{ modalContent }}</div>
-    </div>
-  </div>
-</template>
