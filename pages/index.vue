@@ -87,7 +87,6 @@
                 <img :src="ch.thumbnail_url" alt="thumb" class="w-16 h-16 rounded-full mr-4"/>
                 <div>
                   <div class="text-lg font-semibold truncate max-w-[220px]" :title="ch.channel_name">{{ ch.channel_name }}</div>
-                  <div class="text-gray-500 text-sm truncate max-w-[220px]" :title="ch.channel_id">{{ ch.channel_id }}</div>
                 </div>
               </div>
               <span class="text-xs px-2 py-1 rounded-full"
@@ -113,7 +112,6 @@
             <img :src="ch.thumbnail_url" alt="thumb" class="w-10 h-10 rounded-full"/>
             <div class="min-w-0">
               <div class="font-medium truncate" :title="ch.channel_name">{{ ch.channel_name }}</div>
-              <div class="text-gray-500 text-xs truncate" :title="ch.channel_id">{{ ch.channel_id }}</div>
             </div>
           </div>
           <div class="md:text-center">
@@ -125,6 +123,48 @@
           <div class="md:text-center text-sm">{{ countVideosByChannel(ch.channel_id) }}</div>
           <div class="md:text-center text-sm">{{ countCaptionsByChannel(ch.channel_id) }}</div>
           <div class="md:text-center text-sm">{{ countAIByChannel(ch.channel_id) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent videos (last 3 days) -->
+    <div class="mt-10 bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b">
+        <div class="text-lg font-semibold">Nowe filmy (ostatnie 3 dni)</div>
+      </div>
+      <div class="p-6">
+        <div v-if="videosPending" class="text-center">Ładowanie…</div>
+        <div v-else-if="videosError" class="text-center text-red-500">Błąd ładowania filmów.</div>
+        <div v-else>
+          <div v-if="recentVideos.length === 0" class="text-sm text-gray-500">Brak nowych filmów w ostatnich 3 dniach.</div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="bg-gray-50 text-gray-600">
+                  <th class="text-left px-4 py-2">Video</th>
+                  <th class="text-left px-4 py-2">Kanał</th>
+                  <th class="text-left px-4 py-2">Data</th>
+                  <th class="text-left px-4 py-2">Napisy</th>
+                  <th class="text-left px-4 py-2">AI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="v in recentVideos" :key="v.video_id" class="border-t">
+                  <td class="px-4 py-2">
+                    <a :href="`https://www.youtube.com/watch?v=${v.video_id}`" target="_blank" class="text-blue-600 hover:underline">{{ v.title }}</a>
+                  </td>
+                  <td class="px-4 py-2">{{ v.channel_name }}</td>
+                  <td class="px-4 py-2">{{ new Date(v.published_at).toLocaleString('pl-PL') }}</td>
+                  <td class="px-4 py-2">
+                    <span :class="v.captions ? 'text-green-700' : 'text-gray-500'">{{ v.captions ? '✓' : '—' }}</span>
+                  </td>
+                  <td class="px-4 py-2">
+                    <span :class="v.response ? 'text-blue-700' : 'text-gray-500'">{{ v.response ? '✓' : '—' }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -216,6 +256,16 @@ const stats = computed(() => {
 
 const viewMode = ref<'cards' | 'list'>('cards');
 const channelsData = computed(() => channels.value || []);
+
+const recentVideos = computed(() => {
+  const list = videos.value || [];
+  const now = Date.now();
+  const cutoff = now - 3 * 24 * 60 * 60 * 1000;
+  return list.filter((v: any) => {
+    const t = new Date(v.published_at).getTime();
+    return Number.isFinite(t) && t >= cutoff;
+  });
+});
 
 function countVideosByChannel(channelId: string): number {
   if (!videos.value) return 0;
