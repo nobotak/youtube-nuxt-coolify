@@ -27,7 +27,7 @@
             <img :src="channel.thumbnail_url" alt="Channel thumbnail" class="w-16 h-16 rounded-full mr-4">
             <div>
               <h2 class="text-xl font-bold">{{ channel.channel_name }}</h2>
-              <p class="text-gray-500">{{ channel.channel_id }}</p>
+              <p class="text-gray-500 dark:text-gray-400 text-[10px]">{{ channel.channel_id }}</p>
             </div>
           </div>
           <span class="text-xs px-2 py-1 rounded-full"
@@ -37,17 +37,17 @@
         </div>
 
         <div class="grid grid-cols-3 gap-2 mt-4">
-          <div class="bg-gray-50 rounded p-3 text-center">
+          <div class="bg-gray-50 dark:bg-gray-700 rounded p-3 text-center">
             <div class="text-lg font-semibold">{{ countVideosByChannel(channel.channel_id) }}</div>
-            <div class="text-xs text-gray-500">Filmów</div>
+            <div class="text-xs text-gray-500 dark:text-gray-300">Filmów</div>
           </div>
-          <div class="bg-gray-50 rounded p-3 text-center">
+          <div class="bg-gray-50 dark:bg-gray-700 rounded p-3 text-center">
             <div class="text-lg font-semibold">{{ countCaptionsByChannel(channel.channel_id) }}</div>
-            <div class="text-xs text-gray-500">Napisów</div>
+            <div class="text-xs text-gray-500 dark:text-gray-300">Napisów</div>
           </div>
-          <div class="bg-gray-50 rounded p-3 text-center">
+          <div class="bg-gray-50 dark:bg-gray-700 rounded p-3 text-center">
             <div class="text-lg font-semibold">{{ countAIByChannel(channel.channel_id) }}</div>
-            <div class="text-xs text-gray-500">Analiz AI</div>
+            <div class="text-xs text-gray-500 dark:text-gray-300">Analiz AI</div>
           </div>
         </div>
 
