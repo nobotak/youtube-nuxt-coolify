@@ -48,6 +48,10 @@ export async function checkChannelVideos(channel: any) {
         if (!video.id || !video.snippet || !video.contentDetails) continue;
         const captions = await getCaptions(video.id);
         const durationInSeconds = parseISO8601Duration(video.contentDetails.duration || 'PT0S');
+        // Skip videos shorter than 5 minutes (300s)
+        if (durationInSeconds < 300) {
+          continue;
+        }
         const type = durationInSeconds <= 60 ? 'short' : 'video';
         rowsToInsert.push([
           video.id,
