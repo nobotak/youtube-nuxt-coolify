@@ -8,7 +8,7 @@
       <a :href="'/api/settings/backup'" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Pobierz backup</a>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow">
+    <div class="bg-white p-6 rounded-lg shadow mb-8">
       <h2 class="text-xl font-semibold mb-4">Database restore</h2>
       <p class="text-gray-600 mb-4">Wgraj plik .db aby podmienić bieżącą bazę (aplikacja automatycznie przełączy połączenie).</p>
       <form @submit.prevent="onUpload">
@@ -31,6 +31,33 @@
         </div>
       </form>
     </div>
+
+    <!-- Logs -->
+    <div class="bg-white p-6 rounded-lg shadow">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold">Logs</h2>
+        <button @click="refreshLogs" class="text-sm px-3 py-1 rounded border">Odśwież</button>
+      </div>
+      <div v-if="logsPending" class="text-center text-sm">Ładowanie logów…</div>
+      <div v-else>
+        <table class="min-w-full text-sm divide-y divide-gray-200">
+          <thead>
+            <tr class="bg-gray-50 text-gray-600">
+              <th class="text-left px-4 py-2">Czas</th>
+              <th class="text-left px-4 py-2">Akcja</th>
+              <th class="text-left px-4 py-2">Szczegóły</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in logs" :key="row.id" class="border-t">
+              <td class="px-4 py-2">{{ new Date(row.created_at).toLocaleString('pl-PL') }}</td>
+              <td class="px-4 py-2">{{ row.action }}</td>
+              <td class="px-4 py-2 whitespace-pre-wrap">{{ row.details }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
   </template>
 
@@ -40,6 +67,8 @@ const uploading = ref(false)
 const message = ref('')
 const success = ref(false)
 const progressText = ref('')
+const { data: logsData, pending: logsPending, refresh: refreshLogs } = await useFetch('/api/logs?limit=20')
+const logs = computed(() => logsData.value || [])
 
 async function onUpload() {
   if (!fileInput.value || !fileInput.value.files || fileInput.value.files.length === 0) {

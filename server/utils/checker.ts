@@ -2,9 +2,11 @@ import { db } from '~/server/db';
 import { getLatestVideos } from '~/server/utils/youtube';
 import { parseISO8601Duration } from '~/server/utils/formatters';
 import { getCaptions } from '~/server/utils/captions';
+import { recordLog } from '~/server/utils/logs';
 
 export async function checkChannelVideos(channel: any) {
   console.log(`Checking videos for channel: ${channel.channel_name}`);
+  try { recordLog('check_channel_start', channel.channel_name || channel.channel_id); } catch {}
   
   try {
     const videos = await getLatestVideos(channel.channel_id, channel.api_key);
@@ -78,14 +80,17 @@ export async function checkChannelVideos(channel: any) {
 
   } catch (error) {
     console.error(`Error checking videos for channel ${channel.channel_name}:`, error);
+    try { recordLog('check_channel_error', String(error)); } catch {}
   }
 }
 
 export async function checkAllActiveChannels() {
     console.log('Checking all active channels...');
+    try { recordLog('check_all_start'); } catch {}
     const channels = db.prepare('SELECT * FROM channels WHERE is_active = 1').all();
     for (const channel of channels) {
         await checkChannelVideos(channel);
     }
     console.log('Finished checking all active channels.');
+    try { recordLog('check_all_done'); } catch {}
 }
