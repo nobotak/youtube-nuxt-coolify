@@ -56,10 +56,18 @@
             Aktualizacja: {{ formatDateTime(channel.last_check) }}
           </div>
           <div class="flex items-center gap-2 text-gray-600">
-            <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">👁</button>
-            <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-gray-800" title="Refresh">🔄</button>
-            <button @click="openEdit(channel)" class="hover:text-gray-800" title="Edytuj">✏️</button>
-            <button @click="confirmRemove(channel)" class="text-red-500 hover:text-red-700" title="Usuń">🗑️</button>
+            <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">
+              <span class="material-symbols-outlined text-base">visibility</span>
+            </button>
+            <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-gray-800" title="Refresh">
+              <span class="material-symbols-outlined text-base">refresh</span>
+            </button>
+            <button @click="openEdit(channel)" class="hover:text-gray-800" title="Edytuj">
+              <span class="material-symbols-outlined text-base">edit</span>
+            </button>
+            <button @click="confirmRemove(channel)" class="text-red-500 hover:text-red-700" title="Usuń">
+              <span class="material-symbols-outlined text-base">delete</span>
+            </button>
           </div>
         </div>
       </div>
@@ -91,10 +99,18 @@
         <div class="md:text-center text-sm">{{ countVideosByChannel(channel.channel_id) }}</div>
         <div class="md:text-center text-sm">{{ countCaptionsByChannel(channel.channel_id) }}</div>
         <div class="md:text-center flex items-center gap-3">
-          <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">👁</button>
-          <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-gray-800" title="Refresh">🔄</button>
-          <button @click="openEdit(channel)" class="hover:text-gray-800" title="Edytuj">✏️</button>
-          <button @click="confirmRemove(channel)" class="text-red-500 hover:text-red-700" title="Usuń">🗑️</button>
+          <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">
+            <span class="material-symbols-outlined text-base">visibility</span>
+          </button>
+          <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-gray-800" title="Refresh">
+            <span class="material-symbols-outlined text-base">refresh</span>
+          </button>
+          <button @click="openEdit(channel)" class="hover:text-gray-800" title="Edytuj">
+            <span class="material-symbols-outlined text-base">edit</span>
+          </button>
+          <button @click="confirmRemove(channel)" class="text-red-500 hover:text-red-700" title="Usuń">
+            <span class="material-symbols-outlined text-base">delete</span>
+          </button>
         </div>
       </div>
     </div>
