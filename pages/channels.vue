@@ -142,6 +142,32 @@
         </form>
       </div>
     </div>
+
+    <!-- Edit Channel Modal -->
+    <div v-if="editing" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow p-6 w-full max-w-lg">
+        <h3 class="text-xl font-semibold mb-4">Edytuj kanał</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">Nazwa</label>
+            <input v-model="editing.channel_name" class="w-full px-3 py-2 border rounded"/>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">URL</label>
+            <input v-model="editing.channel_url" class="w-full px-3 py-2 border rounded"/>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">Interwał (ms)</label>
+            <input v-model.number="editing.check_interval" type="number" min="300000" class="w-full px-3 py-2 border rounded"/>
+          </div>
+          <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="editing.is_active"/> Aktywny</label>
+        </div>
+        <div class="mt-5 flex justify-end gap-2">
+          <button @click="cancelEdit" class="px-4 py-2 rounded border">Anuluj</button>
+          <button @click="saveEdit" class="px-4 py-2 rounded bg-blue-600 text-white">Zapisz</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -250,31 +276,3 @@ function cancelEdit() {
   editing.value = null;
 }
 </script>
-
-<template v-if="editing">
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow p-6 w-full max-w-lg">
-      <h3 class="text-xl font-semibold mb-4">Edytuj kanał</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-sm text-gray-700 mb-1">Nazwa</label>
-          <input v-model="editing.channel_name" class="w-full px-3 py-2 border rounded"/>
-        </div>
-        <div>
-          <label class="block text-sm text-gray-700 mb-1">URL</label>
-          <input v-model="editing.channel_url" class="w-full px-3 py-2 border rounded"/>
-        </div>
-        <div>
-          <label class="block text-sm text-gray-700 mb-1">Interwał (ms)</label>
-          <input v-model.number="editing.check_interval" type="number" min="300000" class="w-full px-3 py-2 border rounded"/>
-        </div>
-        <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="editing.is_active"/> Aktywny</label>
-      </div>
-      <div class="mt-5 flex justify-end gap-2">
-        <button @click="cancelEdit" class="px-4 py-2 rounded border">Anuluj</button>
-        <button @click="saveEdit" class="px-4 py-2 rounded bg-blue-600 text-white">Zapisz</button>
-      </div>
-    </div>
-  </div>
-  
-</template>
