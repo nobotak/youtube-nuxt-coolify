@@ -6,6 +6,9 @@
     <div v-else-if="error" class="text-center text-red-500">Error loading videos.</div>
     
     <div v-else class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div class="mb-4">
+        <input v-model="q" type="text" placeholder="Szukaj po tytule, kanale, ID, opisie…" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400" />
+      </div>
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead class="bg-gray-50 dark:bg-gray-700">
           <tr>
@@ -21,7 +24,7 @@
           </tr>
         </thead>
         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          <tr v-for="video in videos" :key="video.video_id">
+          <tr v-for="video in filteredVideos" :key="video.video_id">
             <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center gap-3">
                   <img :src="video.channel_thumbnail" alt="thumb" class="w-10 h-10 rounded-full"/>
@@ -70,6 +73,20 @@
 </template>
 <script setup lang="ts">
 const { data: videos, pending, error, refresh } = await useFetch('/api/videos');
+const q = ref('');
+
+const filteredVideos = computed(() => {
+  const list = videos.value || [];
+  const term = q.value.trim().toLowerCase();
+  if (!term) return list;
+  return list.filter((v: any) => {
+    const title = (v.title || '').toLowerCase();
+    const channel = (v.channel_name || '').toLowerCase();
+    const id = (v.video_id || '').toLowerCase();
+    const desc = (v.snippet?.description || v.description || '').toLowerCase();
+    return title.includes(term) || channel.includes(term) || id.includes(term) || desc.includes(term);
+  });
+});
 
 async function downloadVideo(videoId: string) {
   try {
