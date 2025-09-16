@@ -1,5 +1,5 @@
 import { db } from '~/server/db';
-import { getChannelInfo } from '~/server/utils/youtube';
+import { getChannelInfo, resolveChannelId } from '~/server/utils/youtube';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -13,7 +13,9 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const channelInfo = await getChannelInfo(channel_id, api_key);
+    // Allow @handle or full link; resolve to UC* id if needed
+    const resolvedId = await resolveChannelId(channel_id, api_key).catch(() => channel_id);
+    const channelInfo = await getChannelInfo(resolvedId, api_key);
 
     if (!channelInfo || !channelInfo.id || !channelInfo.title) {
         throw new Error('Could not retrieve channel information.');
