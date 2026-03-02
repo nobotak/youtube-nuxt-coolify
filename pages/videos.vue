@@ -58,11 +58,11 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm">
               <button
                 @click="showCaptions(video)"
-                :disabled="captionsStatusByVideo[video.video_id] === 'loading'"
+                :disabled="getCaptionState(video) === 'loading'"
                 class="underline disabled:no-underline disabled:opacity-60"
-                :class="captionsStatusByVideo[video.video_id] === 'error' ? 'text-red-600 hover:text-red-700' : captionsStatusByVideo[video.video_id] === 'done' ? 'text-green-700 hover:text-green-800' : 'text-gray-700 hover:text-gray-900'"
+                :class="getCaptionState(video) === 'error' ? 'text-red-600 hover:text-red-700' : getCaptionState(video) === 'done' ? 'text-green-700 hover:text-green-800' : 'text-gray-700 hover:text-gray-900'"
               >
-                {{ captionButtonLabel(video.video_id) }}
+                {{ captionButtonLabel(video) }}
               </button>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -148,22 +148,57 @@ const showAIModal = ref(false);
 const modalTitle = ref('');
 const modalContent = ref('');
 
-function captionButtonLabel(videoId: string) {
-  const state = captionsStatusByVideo.value[videoId];
+function getCaptionState(video: any): 'loading' | 'done' | 'error' | undefined {
+  const state = captionsStatusByVideo.value[video.video_id];
+  if (state) return state;
+  if (video?.captions) return 'done';
+  return undefined;
+}
+
+function captionButtonLabel(video: any) {
+  const state = getCaptionState(video);
   if (state === 'loading') return 'Pobieranie...';
   if (state === 'done') return 'Gotowe';
   if (state === 'error') return 'Błąd';
   return 'Napisy';
 }
 
+function renderCaptionsText(raw: unknown): string {
+  if (!raw) return 'Brak napisów';
+  if (Array.isArray(raw)) {
+    return raw.map((segment: any) => segment?.text || '').join(' ').trim() || 'Brak napisów';
+  }
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((segment: any) => segment?.text || '').join(' ').trim() || 'Brak napisów';
+      }
+    } catch {
+      // Keep plain string captions untouched.
+    }
+    return raw;
+  }
+  return String(raw);
+}
+
 async function showCaptions(video: any) {
-  captionsStatusByVideo.value[video.video_id] = 'loading';
   modalTitle.value = `Napisy: ${video.title}`;
-  modalContent.value = 'Pobieram transkrypcję...';
   showCaptionsModal.value = true;
+
+  if (video?.captions) {
+    modalContent.value = renderCaptionsText(video.captions);
+    captionsStatusByVideo.value[video.video_id] = 'done';
+    return;
+  }
+
+  captionsStatusByVideo.value[video.video_id] = 'loading';
+  modalContent.value = 'Pobieram transkrypcję...';
   try {
     const response = await $fetch<{ transcript?: string }>(`/api/captions/${video.video_id}`);
-    modalContent.value = response?.transcript || 'Brak treści transkrypcji.';
+    const transcript = response?.transcript || 'Brak treści transkrypcji.';
+    modalContent.value = transcript;
+    video.captions = transcript;
     captionsStatusByVideo.value[video.video_id] = 'done';
   } catch (err: any) {
     modalContent.value = `Nie udało się pobrać transkrypcji.\n${err?.statusMessage || err?.message || ''}`.trim();
