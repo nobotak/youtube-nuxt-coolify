@@ -38,6 +38,21 @@ yarn dev
 bun run dev
 ```
 
+## Panel Authentication (Required)
+
+The app uses HTTP Basic Auth for the whole panel and API.
+
+Set both environment variables before running:
+
+```bash
+PANEL_AUTH_USERNAME=your_username
+PANEL_AUTH_PASSWORD=your_strong_password
+```
+
+Without these variables, the app returns a configuration error instead of exposing the panel publicly.
+
+Health check endpoint (no auth): `GET /api/healthz`
+
 ## Production
 
 Build the application for production:

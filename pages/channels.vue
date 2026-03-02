@@ -168,8 +168,24 @@
             <input v-model="editing.channel_url" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"/>
           </div>
           <div>
-            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Interwał (ms)</label>
-            <input v-model.number="editing.check_interval" type="number" min="300000" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"/>
+            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Interwał sprawdzania</label>
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                v-model.number="editIntervalValue"
+                type="number"
+                min="1"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+              <select
+                v-model="editIntervalUnit"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="ms">ms</option>
+                <option value="s">sekundy</option>
+                <option value="min">minuty</option>
+                <option value="h">godziny</option>
+              </select>
+            </div>
           </div>
           <div class="border-t border-gray-200 dark:border-gray-700 pt-3">
             <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -262,8 +278,14 @@ async function refreshChannelNow(channelId: string) {
 
 const editing = ref<any | null>(null);
 const editTimeWindowEnabled = ref(false);
+const editIntervalValue = ref<number>(30);
+const editIntervalUnit = ref<'ms' | 's' | 'min' | 'h'>('min');
 function openEdit(channel: any) {
   editing.value = { ...channel };
+  const intervalMs = Number(channel?.check_interval || 1800000);
+  const interval = splitIntervalMs(intervalMs);
+  editIntervalValue.value = interval.value;
+  editIntervalUnit.value = interval.unit;
   const from = Number(channel?.check_from_hour);
   const to = Number(channel?.check_to_hour);
   const hasWindow = Number.isInteger(from) && from >= 0 && from <= 23 && Number.isInteger(to) && to >= 0 && to <= 23;
@@ -324,7 +346,7 @@ async function saveEdit() {
   const payload: any = {
     channel_name: editing.value.channel_name,
     channel_url: editing.value.channel_url,
-    check_interval: editing.value.check_interval,
+    check_interval: convertIntervalToMs(editIntervalValue.value, editIntervalUnit.value),
     check_from_hour: fromHour,
     check_to_hour: toHour,
     is_active: !!editing.value.is_active,
@@ -344,5 +366,27 @@ function normalizeHour(raw: unknown): number {
   if (value < 0) return 0;
   if (value > 23) return 23;
   return Math.floor(value);
+}
+
+function convertIntervalToMs(valueRaw: unknown, unit: 'ms' | 's' | 'min' | 'h'): number {
+  const value = Math.max(1, Math.floor(Number(valueRaw) || 1));
+  if (unit === 'h') return value * 60 * 60 * 1000;
+  if (unit === 'min') return value * 60 * 1000;
+  if (unit === 's') return value * 1000;
+  return value;
+}
+
+function splitIntervalMs(intervalMsRaw: unknown): { value: number; unit: 'ms' | 's' | 'min' | 'h' } {
+  const intervalMs = Math.max(1, Math.floor(Number(intervalMsRaw) || 1));
+  if (intervalMs % (60 * 60 * 1000) === 0) {
+    return { value: intervalMs / (60 * 60 * 1000), unit: 'h' };
+  }
+  if (intervalMs % (60 * 1000) === 0) {
+    return { value: intervalMs / (60 * 1000), unit: 'min' };
+  }
+  if (intervalMs % 1000 === 0) {
+    return { value: intervalMs / 1000, unit: 's' };
+  }
+  return { value: intervalMs, unit: 'ms' };
 }
 </script>
