@@ -31,12 +31,6 @@
                 Captions
             </NuxtLink>
           </li>
-           <li>
-            <NuxtLink to="/downloads" class="flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-              <span class="mr-3">📁</span>
-              Downloads
-            </NuxtLink>
-          </li>
           <li>
             <NuxtLink to="/settings" class="flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <span class="mr-3">⚙️</span>

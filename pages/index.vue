@@ -150,7 +150,7 @@
           <div v-else class="overflow-x-auto">
             <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
               <thead>
-                <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                <tr class="text-gray-600 dark:text-gray-300">
                   <th class="text-left px-4 py-2">Video</th>
                   <th class="text-left px-4 py-2">Kanał</th>
                   <th class="text-left px-4 py-2">Data</th>
@@ -194,7 +194,7 @@
           <div class="overflow-x-auto">
             <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
               <thead>
-                <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                <tr class="text-gray-600 dark:text-gray-300">
                   <th class="text-left px-4 py-2">Operacja</th>
                   <th class="text-left px-4 py-2">Liczba</th>
                   <th class="text-left px-4 py-2">Koszt</th>
@@ -215,7 +215,7 @@
             <div class="overflow-x-auto">
               <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
                 <thead>
-                  <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                  <tr class="text-gray-600 dark:text-gray-300">
                     <th class="text-left px-4 py-2">Kanał</th>
                     <th class="text-left px-4 py-2">Zapytania/dobę</th>
                     <th class="text-left px-4 py-2">Interwał (min)</th>

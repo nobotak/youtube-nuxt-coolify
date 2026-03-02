@@ -42,7 +42,7 @@
       <div v-else>
         <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
-            <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+            <tr class="text-gray-600 dark:text-gray-300">
               <th class="text-left px-4 py-2">Czas</th>
               <th class="text-left px-4 py-2">Akcja</th>
               <th class="text-left px-4 py-2">Szczegóły</th>
