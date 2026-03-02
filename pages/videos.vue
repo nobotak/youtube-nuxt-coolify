@@ -56,7 +56,14 @@
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
-              <button @click="showCaptions(video)" class="text-gray-700 hover:text-gray-900 underline">Napisy</button>
+              <button
+                @click="showCaptions(video)"
+                :disabled="captionsStatusByVideo[video.video_id] === 'loading'"
+                class="underline disabled:no-underline disabled:opacity-60"
+                :class="captionsStatusByVideo[video.video_id] === 'error' ? 'text-red-600 hover:text-red-700' : captionsStatusByVideo[video.video_id] === 'done' ? 'text-green-700 hover:text-green-800' : 'text-gray-700 hover:text-gray-900'"
+              >
+                {{ captionButtonLabel(video.video_id) }}
+              </button>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
               <button @click="showAI(video)" class="text-gray-700 hover:text-gray-900 underline">AI</button>
@@ -88,6 +95,7 @@ const q = ref('');
 const checkInProgress = ref(false);
 const checkMessage = ref('');
 const checkErrorMessage = ref('');
+const captionsStatusByVideo = ref<Record<string, 'loading' | 'done' | 'error' | undefined>>({});
 
 const filteredVideos = computed(() => {
   const list = videos.value || [];
@@ -140,19 +148,27 @@ const showAIModal = ref(false);
 const modalTitle = ref('');
 const modalContent = ref('');
 
-function showCaptions(video: any) {
+function captionButtonLabel(videoId: string) {
+  const state = captionsStatusByVideo.value[videoId];
+  if (state === 'loading') return 'Pobieranie...';
+  if (state === 'done') return 'Gotowe';
+  if (state === 'error') return 'Błąd';
+  return 'Napisy';
+}
+
+async function showCaptions(video: any) {
+  captionsStatusByVideo.value[video.video_id] = 'loading';
   modalTitle.value = `Napisy: ${video.title}`;
-  try {
-    if (video.captions) {
-      const parsed = typeof video.captions === 'string' ? JSON.parse(video.captions) : video.captions;
-      modalContent.value = Array.isArray(parsed) ? parsed.map((s: any) => s.text).join(' ') : String(video.captions);
-    } else {
-      modalContent.value = 'Brak napisów';
-    }
-  } catch {
-    modalContent.value = String(video.captions || 'Brak napisów');
-  }
+  modalContent.value = 'Pobieram transkrypcję...';
   showCaptionsModal.value = true;
+  try {
+    const response = await $fetch<{ transcript?: string }>(`/api/captions/${video.video_id}`);
+    modalContent.value = response?.transcript || 'Brak treści transkrypcji.';
+    captionsStatusByVideo.value[video.video_id] = 'done';
+  } catch (err: any) {
+    modalContent.value = `Nie udało się pobrać transkrypcji.\n${err?.statusMessage || err?.message || ''}`.trim();
+    captionsStatusByVideo.value[video.video_id] = 'error';
+  }
 }
 
 function showAI(video: any) {
