@@ -11,7 +11,7 @@
             <span class="text-2xl">📺</span>
           </div>
           <div class="ml-4">
-            <p class="text-gray-600">Total Channels</p>
+            <p class="text-gray-600 dark:text-gray-300">Total Channels</p>
             <p class="text-2xl font-bold">{{ stats.totalChannels }}</p>
           </div>
         </div>
@@ -24,7 +24,7 @@
             <span class="text-2xl">●</span>
           </div>
           <div class="ml-4">
-            <p class="text-gray-600">Active Channels</p>
+            <p class="text-gray-600 dark:text-gray-300">Active Channels</p>
             <p class="text-2xl font-bold">{{ stats.activeChannels }}</p>
           </div>
         </div>
@@ -37,7 +37,7 @@
             <span class="text-2xl">🎬</span>
           </div>
           <div class="ml-4">
-            <p class="text-gray-600">Total Videos</p>
+            <p class="text-gray-600 dark:text-gray-300">Total Videos</p>
             <p class="text-2xl font-bold">{{ stats.totalVideos }}</p>
           </div>
         </div>
@@ -50,7 +50,7 @@
             <span class="text-2xl">⚡</span>
           </div>
           <div class="ml-4">
-            <p class="text-gray-600">AI Analysis</p>
+            <p class="text-gray-600 dark:text-gray-300">AI Analysis</p>
             <p class="text-2xl font-bold">{{ stats.totalAI }}</p>
           </div>
         </div>
@@ -62,25 +62,31 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <h2 class="text-xl font-semibold">Kanały YouTube</h2>
         <div class="flex items-center gap-2">
-          <div class="bg-gray-100 rounded p-1 inline-flex">
+          <div class="bg-gray-100 dark:bg-gray-700 rounded p-1 inline-flex">
             <button class="px-3 py-1 rounded text-sm"
-                    :class="viewMode === 'cards' ? 'bg-white shadow text-gray-800' : 'text-gray-600'"
+                    :class="viewMode === 'cards' ? 'bg-white dark:bg-gray-200 shadow text-gray-800 dark:text-gray-900' : 'text-gray-600 dark:text-gray-300'"
                     @click="viewMode = 'cards'">Karty</button>
             <button class="px-3 py-1 rounded text-sm"
-                    :class="viewMode === 'list' ? 'bg-white shadow text-gray-800' : 'text-gray-600'"
+                    :class="viewMode === 'list' ? 'bg-white dark:bg-gray-200 shadow text-gray-800 dark:text-gray-900' : 'text-gray-600 dark:text-gray-300'"
                     @click="viewMode = 'list'">Lista</button>
           </div>
-          <button @click="triggerCheckVideos" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm">
-            Sprawdź nowe filmy
+          <button
+            @click="triggerCheckVideos"
+            :disabled="checkInProgress"
+            class="bg-blue-600 text-white px-3 py-2 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+          >
+            {{ checkInProgress ? 'Trwa sprawdzanie...' : 'Sprawdź nowe filmy' }}
           </button>
         </div>
       </div>
+      <div v-if="checkMessage" class="mb-3 text-sm text-green-600 dark:text-green-400">{{ checkMessage }}</div>
+      <div v-if="checkErrorMessage" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ checkErrorMessage }}</div>
 
       <!-- Cards view -->
-      <div v-if="viewMode === 'cards'">
-        <div v-if="channelsPending" class="text-center">Ładowanie kanałów...</div>
-        <div v-else-if="channelsError" class="text-center text-red-500">Błąd ładowania kanałów.</div>
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-if="channelsPending" class="text-center">Ładowanie kanałów...</div>
+      <div v-else-if="channelsError" class="text-center text-red-500">Błąd ładowania kanałów.</div>
+      <div v-else-if="viewMode === 'cards'">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div v-for="ch in channelsData" :key="ch.channel_id" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <div class="flex items-center justify-between">
               <div class="flex items-center">
@@ -89,8 +95,10 @@
                   <div class="text-lg font-semibold truncate max-w-[220px]" :title="ch.channel_name">{{ ch.channel_name }}</div>
                 </div>
               </div>
-              <span class="text-xs px-2 py-1 rounded-full"
-                    :class="ch.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
+              <span
+                class="text-xs px-2 py-1 rounded-full"
+                :class="ch.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'"
+              >
                 {{ ch.is_active ? 'Aktywny' : 'Nieaktywny' }}
               </span>
             </div>
@@ -115,8 +123,10 @@
             </div>
           </div>
           <div class="md:text-center">
-            <span class="text-xs px-2 py-1 rounded-full"
-                  :class="ch.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
+            <span
+              class="text-xs px-2 py-1 rounded-full"
+              :class="ch.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'"
+            >
               {{ ch.is_active ? 'Aktywny' : 'Nieaktywny' }}
             </span>
           </div>
@@ -151,7 +161,7 @@
               <tbody>
                 <tr v-for="v in recentVideos" :key="v.video_id" class="border-t border-gray-200 dark:border-gray-700">
                   <td class="px-4 py-2">
-                    <a :href="`https://www.youtube.com/watch?v=${v.video_id}`" target="_blank" class="text-blue-600 hover:underline">{{ v.title }}</a>
+                    <a :href="`https://www.youtube.com/watch?v=${v.video_id}`" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">{{ v.title }}</a>
                   </td>
                   <td class="px-4 py-2">{{ v.channel_name }}</td>
                   <td class="px-4 py-2">{{ new Date(v.published_at).toLocaleString('pl-PL') }}</td>
@@ -228,12 +238,23 @@
 </template>
 
 <script setup lang="ts">
-const { data: channels, pending: channelsPending, error: channelsError, refresh: refreshChannels } = await useFetch('/api/channels');
-const { data: videos, pending: videosPending, error: videosError, refresh: refreshVideos } = await useFetch('/api/videos');
-const { data: statsData, pending: statsPending, error: statsError, refresh: refreshStats } = await useFetch('/api/stats');
+const {
+  data: dashboard,
+  pending: dashboardPending,
+  error: dashboardError,
+  refresh: refreshDashboard,
+} = await useFetch('/api/dashboard');
+
+const channelsPending = dashboardPending;
+const channelsError = dashboardError;
+const videosPending = dashboardPending;
+const videosError = dashboardError;
+const statsPending = dashboardPending;
+const statsError = dashboardError;
 
 const stats = computed(() => {
-  if (!channels.value || !videos.value) {
+  const totals = dashboard.value?.totals;
+  if (!totals) {
     return {
       totalChannels: 0,
       activeChannels: 0,
@@ -242,50 +263,56 @@ const stats = computed(() => {
     };
   }
 
-  const activeChannels = channels.value.filter((c: any) => c.is_active).length;
-  const totalVideos = videos.value.length;
-  const totalAI = videos.value.filter((v: any) => !!v.response).length;
-
   return {
-    totalChannels: channels.value.length,
-    activeChannels,
-    totalVideos,
-    totalAI,
+    totalChannels: totals.totalChannels || 0,
+    activeChannels: totals.activeChannels || 0,
+    totalVideos: totals.totalVideos || 0,
+    totalAI: totals.totalAI || 0,
   };
 });
 
 const viewMode = ref<'cards' | 'list'>('cards');
-const channelsData = computed(() => channels.value || []);
-
-const recentVideos = computed(() => {
-  const list = videos.value || [];
-  const now = Date.now();
-  const cutoff = now - 3 * 24 * 60 * 60 * 1000;
-  return list.filter((v: any) => {
-    const t = new Date(v.published_at).getTime();
-    return Number.isFinite(t) && t >= cutoff;
-  });
-});
+const channelsData = computed(() => dashboard.value?.channels || []);
+const channelStatsById = computed<Record<string, { videos: number; captions: number; ai: number }>>(
+  () => dashboard.value?.channelStats || {}
+);
+const recentVideos = computed(() => dashboard.value?.recentVideos || []);
+const statsData = computed(() => ({
+  apiUsage: dashboard.value?.apiUsage || { used: 0, breakdown: [] },
+  apiExpected: dashboard.value?.apiExpected || { totalPerDay: 0, breakdown: [] },
+}));
 
 function countVideosByChannel(channelId: string): number {
-  if (!videos.value) return 0;
-  return videos.value.filter((v: any) => v.channel_id === channelId).length;
+  return channelStatsById.value[channelId]?.videos || 0;
 }
 function countCaptionsByChannel(channelId: string): number {
-  if (!videos.value) return 0;
-  return videos.value.filter((v: any) => v.channel_id === channelId && !!v.captions).length;
+  return channelStatsById.value[channelId]?.captions || 0;
 }
 function countAIByChannel(channelId: string): number {
-  if (!videos.value) return 0;
-  return videos.value.filter((v: any) => v.channel_id === channelId && !!v.response).length;
+  return channelStatsById.value[channelId]?.ai || 0;
 }
 
+const checkInProgress = ref(false);
+const checkMessage = ref('');
+const checkErrorMessage = ref('');
+
 async function triggerCheckVideos() {
+  checkInProgress.value = true;
+  checkMessage.value = '';
+  checkErrorMessage.value = '';
   try {
     await $fetch('/api/tasks/check-videos', { method: 'POST' });
-    await Promise.all([refreshChannels(), refreshVideos(), refreshStats()]);
+    checkMessage.value = 'Uruchomiono sprawdzanie filmów. Odświeżono dashboard.';
+    await refreshDashboard();
   } catch (e) {
-    // no-op display can be added later
+    const statusCode = Number((e as any)?.statusCode || (e as any)?.response?.status || 0);
+    if (statusCode === 409) {
+      checkErrorMessage.value = 'Sprawdzanie już trwa. Poczekaj, aż obecny proces się zakończy.';
+    } else {
+      checkErrorMessage.value = 'Nie udało się uruchomić sprawdzania filmów.';
+    }
+  } finally {
+    checkInProgress.value = false;
   }
 }
 </script>

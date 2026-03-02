@@ -1,6 +1,17 @@
 <template>
   <div>
-    <h1 class="text-3xl font-bold mb-6">Videos</h1>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+      <h1 class="text-3xl font-bold">Videos</h1>
+      <button
+        @click="triggerCheckVideos"
+        :disabled="checkInProgress"
+        class="bg-blue-600 text-white px-3 py-2 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+      >
+        {{ checkInProgress ? 'Trwa sprawdzanie...' : 'Sprawdź nowe filmy' }}
+      </button>
+    </div>
+    <div v-if="checkMessage" class="mb-3 text-sm text-green-600 dark:text-green-400">{{ checkMessage }}</div>
+    <div v-if="checkErrorMessage" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ checkErrorMessage }}</div>
 
     <div v-if="pending" class="text-center">Loading...</div>
     <div v-else-if="error" class="text-center text-red-500">Error loading videos.</div>
@@ -30,7 +41,7 @@
                   <img :src="video.channel_thumbnail" alt="thumb" class="w-10 h-10 rounded-full"/>
                   <div>
                     <div class="text-sm font-medium text-gray-900">
-                      <a :href="`https://www.youtube.com/watch?v=${video.video_id}`" target="_blank" class="text-blue-600 hover:underline">{{ video.title }}</a>
+                      <a :href="`https://www.youtube.com/watch?v=${video.video_id}`" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">{{ video.title }}</a>
                     </div>
                     <div class="text-xs text-gray-500">{{ video.video_id }}</div>
                   </div>
@@ -74,6 +85,9 @@
 <script setup lang="ts">
 const { data: videos, pending, error, refresh } = await useFetch('/api/videos');
 const q = ref('');
+const checkInProgress = ref(false);
+const checkMessage = ref('');
+const checkErrorMessage = ref('');
 
 const filteredVideos = computed(() => {
   const list = videos.value || [];
@@ -98,6 +112,26 @@ async function downloadVideo(videoId: string) {
   } catch (err) {
     alert('Error starting download.');
     console.error(err);
+  }
+}
+
+async function triggerCheckVideos() {
+  checkInProgress.value = true;
+  checkMessage.value = '';
+  checkErrorMessage.value = '';
+  try {
+    await $fetch('/api/tasks/check-videos', { method: 'POST' });
+    checkMessage.value = 'Uruchomiono sprawdzanie filmów.';
+    await refresh();
+  } catch (e) {
+    const statusCode = Number((e as any)?.statusCode || (e as any)?.response?.status || 0);
+    if (statusCode === 409) {
+      checkErrorMessage.value = 'Sprawdzanie już trwa. Poczekaj, aż obecny proces się zakończy.';
+    } else {
+      checkErrorMessage.value = 'Nie udało się uruchomić sprawdzania filmów.';
+    }
+  } finally {
+    checkInProgress.value = false;
   }
 }
 
