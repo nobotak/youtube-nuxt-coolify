@@ -135,6 +135,17 @@
               </select>
             </div>
           </div>
+          <div class="mb-4">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" v-model="timeWindowEnabled" />
+              Ogranicz sprawdzanie do godzin
+            </label>
+            <div class="flex gap-2 mt-2">
+              <input type="number" min="0" max="23" v-model.number="timeWindowFromHour" :disabled="!timeWindowEnabled" class="w-1/2 px-3 py-2 border rounded-lg disabled:opacity-50" placeholder="Od (0-23)">
+              <input type="number" min="0" max="23" v-model.number="timeWindowToHour" :disabled="!timeWindowEnabled" class="w-1/2 px-3 py-2 border rounded-lg disabled:opacity-50" placeholder="Do (0-23)">
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Przykład: 16 do 22 oznacza sprawdzanie tylko między 16:00 a 22:00.</p>
+          </div>
           <div class="flex justify-end">
             <button type="button" @click="showAddChannelModal = false" class="text-gray-600 mr-4">Cancel</button>
             <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg">Add Channel</button>
@@ -145,25 +156,55 @@
 
     <!-- Edit Channel Modal -->
     <div v-if="editing" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow p-6 w-full max-w-lg">
-        <h3 class="text-xl font-semibold mb-4">Edytuj kanał</h3>
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-full max-w-lg border border-gray-200 dark:border-gray-700">
+        <h3 class="text-xl font-semibold mb-4 dark:text-gray-100">Edytuj kanał</h3>
         <div class="space-y-3">
           <div>
-            <label class="block text-sm text-gray-700 mb-1">Nazwa</label>
-            <input v-model="editing.channel_name" class="w-full px-3 py-2 border rounded"/>
+            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Nazwa</label>
+            <input v-model="editing.channel_name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"/>
           </div>
           <div>
-            <label class="block text-sm text-gray-700 mb-1">URL</label>
-            <input v-model="editing.channel_url" class="w-full px-3 py-2 border rounded"/>
+            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">URL</label>
+            <input v-model="editing.channel_url" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"/>
           </div>
           <div>
-            <label class="block text-sm text-gray-700 mb-1">Interwał (ms)</label>
-            <input v-model.number="editing.check_interval" type="number" min="300000" class="w-full px-3 py-2 border rounded"/>
+            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Interwał (ms)</label>
+            <input v-model.number="editing.check_interval" type="number" min="300000" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"/>
           </div>
-          <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="editing.is_active"/> Aktywny</label>
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-3">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" v-model="editTimeWindowEnabled" class="accent-blue-600"/>
+              Ogranicz sprawdzanie do godzin
+            </label>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <input
+                v-model.number="editing.check_from_hour"
+                type="number"
+                min="0"
+                max="23"
+                :disabled="!editTimeWindowEnabled"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                placeholder="Od (0-23)"
+              />
+              <input
+                v-model.number="editing.check_to_hour"
+                type="number"
+                min="0"
+                max="23"
+                :disabled="!editTimeWindowEnabled"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                placeholder="Do (0-23)"
+              />
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Przykład: 16 do 22 oznacza sprawdzanie tylko między 16:00 a 22:00.</p>
+          </div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input type="checkbox" v-model="editing.is_active" class="accent-blue-600"/>
+            Aktywny
+          </label>
         </div>
         <div class="mt-5 flex justify-end gap-2">
-          <button @click="cancelEdit" class="px-4 py-2 rounded border">Anuluj</button>
+          <button @click="cancelEdit" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Anuluj</button>
           <button @click="saveEdit" class="px-4 py-2 rounded bg-blue-600 text-white">Zapisz</button>
         </div>
       </div>
@@ -183,6 +224,9 @@ const newChannel = ref({
 // Interwał: wartość + jednostka (jak w "old")
 const intervalValue = ref<number>(30);
 const intervalUnit = ref<'min' | 'h' | 'd'>('min');
+const timeWindowEnabled = ref(false);
+const timeWindowFromHour = ref<number>(16);
+const timeWindowToHour = ref<number>(22);
 
 const viewMode = ref<'cards' | 'list'>('cards');
 
@@ -217,8 +261,15 @@ async function refreshChannelNow(channelId: string) {
 }
 
 const editing = ref<any | null>(null);
+const editTimeWindowEnabled = ref(false);
 function openEdit(channel: any) {
   editing.value = { ...channel };
+  const from = Number(channel?.check_from_hour);
+  const to = Number(channel?.check_to_hour);
+  const hasWindow = Number.isInteger(from) && from >= 0 && from <= 23 && Number.isInteger(to) && to >= 0 && to <= 23;
+  editTimeWindowEnabled.value = hasWindow;
+  editing.value.check_from_hour = hasWindow ? from : 16;
+  editing.value.check_to_hour = hasWindow ? to : 22;
 }
 
 async function confirmRemove(channel: any) {
@@ -235,18 +286,25 @@ async function addChannel() {
       ? intervalValue.value * 60
       : intervalValue.value * 1440;
   const checkIntervalMs = Math.max(5, Number(minutes || 0)) * 60_000;
+  const fromHour = timeWindowEnabled.value ? normalizeHour(timeWindowFromHour.value) : null;
+  const toHour = timeWindowEnabled.value ? normalizeHour(timeWindowToHour.value) : null;
 
   await $fetch('/api/channels', {
     method: 'POST',
     body: {
       ...newChannel.value,
       check_interval: checkIntervalMs,
+      check_from_hour: fromHour,
+      check_to_hour: toHour,
     },
   });
   showAddChannelModal.value = false;
   newChannel.value = { channel_id: '' };
   intervalValue.value = 30;
   intervalUnit.value = 'min';
+  timeWindowEnabled.value = false;
+  timeWindowFromHour.value = 16;
+  timeWindowToHour.value = 22;
   refresh();
 }
 
@@ -261,10 +319,14 @@ async function deleteChannel(channelId: string) {
 
 async function saveEdit() {
   if (!editing.value) return;
+  const fromHour = editTimeWindowEnabled.value ? normalizeHour(editing.value.check_from_hour) : null;
+  const toHour = editTimeWindowEnabled.value ? normalizeHour(editing.value.check_to_hour) : null;
   const payload: any = {
     channel_name: editing.value.channel_name,
     channel_url: editing.value.channel_url,
     check_interval: editing.value.check_interval,
+    check_from_hour: fromHour,
+    check_to_hour: toHour,
     is_active: !!editing.value.is_active,
   };
   await $fetch(`/api/channels/${editing.value.channel_id}`, { method: 'PUT', body: payload });
@@ -274,5 +336,13 @@ async function saveEdit() {
 
 function cancelEdit() {
   editing.value = null;
+}
+
+function normalizeHour(raw: unknown): number {
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return 0;
+  if (value < 0) return 0;
+  if (value > 23) return 23;
+  return Math.floor(value);
 }
 </script>

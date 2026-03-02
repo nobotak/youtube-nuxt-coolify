@@ -4,6 +4,21 @@ import { parseISO8601Duration } from '~/server/utils/formatters';
 import { getCaptions } from '~/server/utils/captions';
 import { recordLog } from '~/server/utils/logs';
 
+function isWithinAllowedHours(channel: any): boolean {
+  const fromHour = Number(channel?.check_from_hour);
+  const toHour = Number(channel?.check_to_hour);
+  const hasFrom = Number.isInteger(fromHour) && fromHour >= 0 && fromHour <= 23;
+  const hasTo = Number.isInteger(toHour) && toHour >= 0 && toHour <= 23;
+  if (!hasFrom || !hasTo) return true;
+
+  const currentHour = new Date().getHours();
+  if (fromHour === toHour) return true;
+  if (fromHour < toHour) {
+    return currentHour >= fromHour && currentHour < toHour;
+  }
+  return currentHour >= fromHour || currentHour < toHour;
+}
+
 export async function checkChannelVideos(channel: any) {
   console.log(`Checking videos for channel: ${channel.channel_name}`);
   try { recordLog('check_channel_start', channel.channel_name || channel.channel_id); } catch {}
@@ -89,6 +104,11 @@ export async function checkAllActiveChannels() {
     try { recordLog('check_all_start'); } catch {}
     const channels = db.prepare('SELECT * FROM channels WHERE is_active = 1').all();
     for (const channel of channels) {
+        if (!isWithinAllowedHours(channel)) {
+            console.log(`Skipping channel outside allowed hours: ${channel.channel_name || channel.channel_id}`);
+            try { recordLog('check_channel_skipped_window', channel.channel_name || channel.channel_id); } catch {}
+            continue;
+        }
         await checkChannelVideos(channel);
     }
     console.log('Finished checking all active channels.');

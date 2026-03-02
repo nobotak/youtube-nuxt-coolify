@@ -85,6 +85,8 @@ function initializeDB() {
       thumbnail_url TEXT,
       is_active BOOLEAN DEFAULT 1,
       check_interval INTEGER DEFAULT 1800000,
+      check_from_hour INTEGER,
+      check_to_hour INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       last_check DATETIME,
       api_key TEXT
@@ -109,8 +111,24 @@ function initializeDB() {
 
   db.exec(createChannelsTable);
   db.exec(createVideosTable);
+  ensureChannelsTimeWindowColumns();
 
   console.log('Database tables are ready.');
+}
+
+function ensureChannelsTimeWindowColumns() {
+  try {
+    const columns = db.prepare('PRAGMA table_info(channels)').all() as Array<{ name: string }>;
+    const names = new Set(columns.map((c) => c.name));
+    if (!names.has('check_from_hour')) {
+      db.exec('ALTER TABLE channels ADD COLUMN check_from_hour INTEGER');
+    }
+    if (!names.has('check_to_hour')) {
+      db.exec('ALTER TABLE channels ADD COLUMN check_to_hour INTEGER');
+    }
+  } catch (error) {
+    console.warn('Failed to ensure channels time-window columns:', error);
+  }
 }
 
 initializeDB();
