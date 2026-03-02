@@ -219,6 +219,7 @@
                     <th class="text-left px-4 py-2">Kanał</th>
                     <th class="text-left px-4 py-2">Zapytania/dobę</th>
                     <th class="text-left px-4 py-2">Interwał (min)</th>
+                    <th class="text-left px-4 py-2">Przedział</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,6 +227,7 @@
                     <td class="px-4 py-2">{{ row.channel_name }}</td>
                     <td class="px-4 py-2">{{ row.perDay }}</td>
                     <td class="px-4 py-2">{{ Math.round(row.intervalMs / 60000) }}</td>
+                    <td class="px-4 py-2">{{ row.window || '24h' }}</td>
                   </tr>
                 </tbody>
               </table>

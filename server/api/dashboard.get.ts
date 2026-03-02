@@ -2,8 +2,23 @@ import { db } from '~/server/db';
 import { getTodayUsageSummary } from '~/server/utils/usage';
 
 export default defineEventHandler(() => {
+  const getWindowInfo = (fromRaw: unknown, toRaw: unknown): { label: string; activeMsPerDay: number } => {
+    const from = Number(fromRaw);
+    const to = Number(toRaw);
+    const hasFrom = Number.isInteger(from) && from >= 0 && from <= 23;
+    const hasTo = Number.isInteger(to) && to >= 0 && to <= 23;
+    if (!hasFrom || !hasTo) {
+      return { label: '24h', activeMsPerDay: 24 * 60 * 60 * 1000 };
+    }
+    if (from === to) {
+      return { label: `${from}:00-${to}:00 (24h)`, activeMsPerDay: 24 * 60 * 60 * 1000 };
+    }
+    const hours = from < to ? (to - from) : (24 - (from - to));
+    return { label: `${from}:00-${to}:00`, activeMsPerDay: hours * 60 * 60 * 1000 };
+  };
+
   const channels = db.prepare(`
-    SELECT channel_id, channel_name, thumbnail_url, is_active, check_interval, created_at, last_check
+    SELECT channel_id, channel_name, thumbnail_url, is_active, check_interval, check_from_hour, check_to_hour, created_at, last_check
     FROM channels
     ORDER BY created_at DESC
   `).all() as Array<any>;
@@ -57,12 +72,14 @@ export default defineEventHandler(() => {
     .filter((ch) => ch.is_active)
     .map((ch) => {
       const interval = Number(ch.check_interval || 1800000);
-      const perDay = Math.max(0, Math.floor(86400000 / Math.max(1, interval)));
+      const window = getWindowInfo(ch.check_from_hour, ch.check_to_hour);
+      const perDay = Math.max(0, Math.floor(window.activeMsPerDay / Math.max(1, interval)));
       return {
         channel_id: ch.channel_id,
         channel_name: ch.channel_name,
         perDay,
         intervalMs: interval,
+        window: window.label,
       };
     });
   const expectedTotal = expectedBreakdown.reduce((sum, row) => sum + row.perDay, 0);
