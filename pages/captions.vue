@@ -115,6 +115,7 @@ const showCaptionsModal = ref(false);
 const modalTitle = ref('');
 const editableContent = ref('');
 const activeVideoId = ref<string | null>(null);
+const activeChannelName = ref('');
 const speakerFrom = ref('');
 const speakerTo = ref('');
 const isSaving = ref(false);
@@ -124,13 +125,29 @@ const saveError = ref('');
 function renderCaptionsText(raw: unknown): string {
   if (!raw) return 'Brak napisów';
   if (Array.isArray(raw)) {
-    return raw.map((segment: any) => segment?.text || '').join(' ').trim() || 'Brak napisów';
+    return raw
+      .map((segment: any) => {
+        const text = String(segment?.text || '').trim();
+        if (!text) return '';
+        const ts = formatTimestamp(segment?.start);
+        return ts ? `[${ts}] ${text}` : text;
+      })
+      .filter(Boolean)
+      .join('\n') || 'Brak napisów';
   }
   if (typeof raw === 'string') {
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.map((segment: any) => segment?.text || '').join(' ').trim() || 'Brak napisów';
+        return parsed
+          .map((segment: any) => {
+            const text = String(segment?.text || '').trim();
+            if (!text) return '';
+            const ts = formatTimestamp(segment?.start);
+            return ts ? `[${ts}] ${text}` : text;
+          })
+          .filter(Boolean)
+          .join('\n') || 'Brak napisów';
       }
     } catch {
       // Keep plain text as-is.
@@ -144,6 +161,7 @@ function openCaptions(video: any) {
   modalTitle.value = `Napisy: ${video.title}`;
   editableContent.value = renderCaptionsText(video.captions);
   activeVideoId.value = video.video_id;
+  activeChannelName.value = String(video.channel_name || '');
   saveMessage.value = '';
   saveError.value = '';
   speakerFrom.value = '';
@@ -154,6 +172,7 @@ function openCaptions(video: any) {
 function closeModal() {
   showCaptionsModal.value = false;
   activeVideoId.value = null;
+  activeChannelName.value = '';
 }
 
 function replaceSpeakerEverywhere() {
@@ -167,13 +186,47 @@ function replaceSpeakerEverywhere() {
 
 async function copyTranscript() {
   if (!editableContent.value.trim()) return;
+  const payload = [
+    `Autor: ${activeChannelName.value || 'Nieznany kanał'}`,
+    `videoId: ${activeVideoId.value || ''}`,
+    '',
+    'Transkrypt:',
+    editableContent.value.trim(),
+  ].join('\n');
   try {
-    await navigator.clipboard.writeText(editableContent.value);
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(payload);
+    } else {
+      fallbackCopy(payload);
+    }
     saveMessage.value = 'Skopiowano transkrypt do schowka.';
     saveError.value = '';
   } catch (err: any) {
     saveError.value = err?.message || 'Nie udało się skopiować transkryptu.';
   }
+}
+
+function formatTimestamp(secondsRaw: unknown): string {
+  const seconds = Number(secondsRaw);
+  if (!Number.isFinite(seconds) || seconds < 0) return '';
+  const total = Math.floor(seconds);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function fallbackCopy(text: string) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', 'true');
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textArea);
 }
 
 async function saveCaptions() {
