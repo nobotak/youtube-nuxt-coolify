@@ -46,6 +46,9 @@
         <div class="text-xs text-slate-400">
           VAPID: {{ pushDebugSummary }}
         </div>
+        <div class="text-[11px] text-slate-500" v-if="pushDebugRefreshedAt">
+          Ostatnie odświeżenie: {{ pushDebugRefreshedAt }}
+        </div>
         <ul v-if="pushIssues.length > 0" class="text-xs text-amber-300 list-disc pl-5 space-y-1">
           <li v-for="item in pushIssues" :key="item">{{ item }}</li>
         </ul>
@@ -179,6 +182,7 @@ const pushSubscribed = computed(() => pushSubscribedRef.value)
 const pushBusy = computed(() => pushBusyRef.value)
 const pushIssues = ref<string[]>([])
 const pushDebugSummary = ref('brak danych')
+const pushDebugRefreshedAt = ref('')
 const pushPermissionLabel = computed(() => {
   const value = pushPermissionRef.value
   if (value === 'granted') return 'dozwolone'
@@ -296,9 +300,11 @@ async function refreshPushDebug() {
     const d = result?.diagnostics || {}
     pushIssues.value = Array.isArray(d.issues) ? d.issues : []
     pushDebugSummary.value = `subskrypcje=${Number(d.subscriptionsCount || 0)}, subject=${d.subjectFormatValid ? 'ok' : 'error'}, pubLen=${Number(d.publicKeyLength || 0)}, privLen=${Number(d.privateKeyLength || 0)}`
+    pushDebugRefreshedAt.value = new Date().toLocaleTimeString('pl-PL')
   } catch (e: any) {
     pushIssues.value = [getErrorMessage(e)]
     pushDebugSummary.value = 'blad diagnostyki'
+    pushDebugRefreshedAt.value = new Date().toLocaleTimeString('pl-PL')
   }
 }
 

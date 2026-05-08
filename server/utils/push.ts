@@ -1,4 +1,4 @@
-import * as webpush from 'web-push';
+import webpushModule from 'web-push';
 import { db } from '~/server/db';
 import { recordLog } from '~/server/utils/logs';
 
@@ -9,6 +9,7 @@ type StoredSubscription = {
 };
 
 let vapidConfigured = false;
+const webpush: any = (webpushModule as any)?.default || (webpushModule as any);
 
 function getVapidConfig() {
   const subject = String(process.env.PUSH_VAPID_SUBJECT || '').trim();
@@ -19,6 +20,12 @@ function getVapidConfig() {
 
 function ensureVapidConfigured() {
   if (vapidConfigured) return;
+  if (typeof webpush?.setVapidDetails !== 'function') {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Biblioteka web-push jest niepoprawnie załadowana (setVapidDetails missing).',
+    });
+  }
   const { subject, publicKey, privateKey } = getVapidConfig();
   if (!subject || !publicKey || !privateKey) {
     throw createError({
@@ -140,6 +147,12 @@ export async function sendPushToAll(payload: { title: string; body: string; url?
 
   for (const sub of subscriptions) {
     try {
+      if (typeof webpush?.sendNotification !== 'function') {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Biblioteka web-push jest niepoprawnie załadowana (sendNotification missing).',
+        });
+      }
       await webpush.sendNotification(
         {
           endpoint: sub.endpoint,
