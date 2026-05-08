@@ -166,10 +166,10 @@
                   <td class="px-4 py-2">{{ v.channel_name }}</td>
                   <td class="px-4 py-2">{{ new Date(v.published_at).toLocaleString('pl-PL') }}</td>
                   <td class="px-4 py-2">
-                    <span :class="v.captions ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{ v.captions ? '✓' : '—' }}</span>
+                    <span :class="(v.has_captions ?? v.captions) ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{ (v.has_captions ?? v.captions) ? '✓' : '—' }}</span>
                   </td>
                   <td class="px-4 py-2">
-                    <span :class="v.response ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'">{{ v.response ? '✓' : '—' }}</span>
+                    <span :class="(v.has_ai_response ?? v.response) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'">{{ (v.has_ai_response ?? v.response) ? '✓' : '—' }}</span>
                   </td>
                 </tr>
               </tbody>

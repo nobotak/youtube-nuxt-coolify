@@ -14,7 +14,23 @@ export default defineEventHandler((event) => {
     FROM videos WHERE channel_id = ?
   `).get(channelId) as any;
 
-  const channelRow = db.prepare('SELECT * FROM channels WHERE channel_id = ?').get(channelId) as any;
+  const channelRow = db.prepare(`
+    SELECT
+      id,
+      channel_id,
+      channel_name,
+      channel_url,
+      thumbnail_url,
+      is_active,
+      check_interval,
+      check_from_hour,
+      check_to_hour,
+      created_at,
+      last_check,
+      CASE WHEN api_key IS NOT NULL AND LENGTH(TRIM(api_key)) > 0 THEN 1 ELSE 0 END as has_custom_api_key
+    FROM channels
+    WHERE channel_id = ?
+  `).get(channelId) as any;
   return { channel: channelRow, stats: {
     total_videos: Number(stats?.total_videos || 0),
     with_captions: Number(stats?.with_captions || 0),

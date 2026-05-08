@@ -48,8 +48,8 @@ export default defineEventHandler(() => {
       v.channel_id,
       v.title,
       v.published_at,
-      v.captions,
-      v.response,
+      CASE WHEN v.captions IS NOT NULL THEN 1 ELSE 0 END as has_captions,
+      CASE WHEN v.response IS NOT NULL THEN 1 ELSE 0 END as has_ai_response,
       c.channel_name
     FROM videos v
     LEFT JOIN channels c ON v.channel_id = c.channel_id

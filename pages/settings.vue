@@ -67,6 +67,7 @@ const uploading = ref(false)
 const message = ref('')
 const success = ref(false)
 const progressText = ref('')
+const MAX_UPLOAD_MB = 25
 const { data: logsData, pending: logsPending, refresh: refreshLogs } = await useFetch('/api/logs?limit=20')
 const logs = computed(() => logsData.value || [])
 
@@ -77,6 +78,17 @@ async function onUpload() {
     return;
   }
   const file = fileInput.value.files[0]
+  const ext = (file.name.split('.').pop() || '').toLowerCase()
+  if (!['db', 'sqlite', 'sqlite3'].includes(ext)) {
+    message.value = 'Dozwolone są tylko pliki .db/.sqlite/.sqlite3'
+    success.value = false
+    return
+  }
+  if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+    message.value = `Plik jest za duży (max ${MAX_UPLOAD_MB} MB)`
+    success.value = false
+    return
+  }
   const form = new FormData()
   form.append('file', file)
 
