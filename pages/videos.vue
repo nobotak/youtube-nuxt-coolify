@@ -55,28 +55,48 @@
         </div>
       </div>
 
-      <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
-        <input ref="searchInputRef" v-model="q" type="text" placeholder="Szukaj po tytule, kanale, ID, opisie…" class="panel-input" />
-        <select v-model="filterChannelId" class="panel-input">
-          <option value="">Wszystkie kanały</option>
-          <option v-for="ch in channelOptions" :key="ch.channel_id" :value="ch.channel_id">{{ ch.channel_name }}</option>
-        </select>
-        <select v-model="filterCaptions" class="panel-input">
-          <option value="all">Napisy: wszystkie</option>
-          <option value="with">Napisy: tylko z napisami</option>
-          <option value="without">Napisy: tylko bez napisów</option>
-        </select>
-        <select v-model="filterAI" class="panel-input">
-          <option value="all">AI: wszystkie</option>
-          <option value="with">AI: tylko z analizą</option>
-          <option value="without">AI: tylko bez analizy</option>
-        </select>
-        <select v-model="sortMode" class="panel-input md:col-span-2">
-          <option value="date_desc">Sortuj: data (najnowsze)</option>
-          <option value="date_asc">Sortuj: data (najstarsze)</option>
-          <option value="title_asc">Sortuj: tytuł A-Z</option>
-          <option value="title_desc">Sortuj: tytuł Z-A</option>
-        </select>
+      <div class="mb-4 panel-card-soft p-3">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+          <label class="lg:col-span-5 text-xs text-slate-400">
+            Szukaj
+            <input ref="searchInputRef" v-model="q" type="text" placeholder="Tytul, kanal, ID, opis..." class="panel-input mt-1" />
+          </label>
+          <label class="lg:col-span-3 text-xs text-slate-400">
+            Kanal
+            <select v-model="filterChannelId" class="panel-input mt-1">
+              <option value="">Wszystkie kanały</option>
+              <option v-for="ch in channelOptions" :key="ch.channel_id" :value="ch.channel_id">{{ ch.channel_name }}</option>
+            </select>
+          </label>
+          <label class="lg:col-span-2 text-xs text-slate-400">
+            Napisy
+            <select v-model="filterCaptions" class="panel-input mt-1">
+              <option value="all">Wszystkie</option>
+              <option value="with">Tylko z napisami</option>
+              <option value="without">Tylko bez napisów</option>
+            </select>
+          </label>
+          <label class="lg:col-span-2 text-xs text-slate-400">
+            AI
+            <select v-model="filterAI" class="panel-input mt-1">
+              <option value="all">Wszystkie</option>
+              <option value="with">Tylko z analizą</option>
+              <option value="without">Tylko bez analizy</option>
+            </select>
+          </label>
+          <label class="lg:col-span-4 text-xs text-slate-400">
+            Sortowanie
+            <select v-model="sortMode" class="panel-input mt-1">
+              <option value="date_desc">Data: najnowsze</option>
+              <option value="date_asc">Data: najstarsze</option>
+              <option value="title_asc">Tytuł: A-Z</option>
+              <option value="title_desc">Tytuł: Z-A</option>
+            </select>
+          </label>
+          <div class="lg:col-span-8 flex items-end justify-end">
+            <button class="panel-btn-secondary" @click="resetQuickFilters">Reset filtrów</button>
+          </div>
+        </div>
       </div>
       <div class="mb-4 flex flex-wrap gap-2">
         <button class="stat-chip" :class="{ 'stat-chip-active': filterCaptions === 'with' }" @click="filterCaptions = 'with'">
@@ -174,6 +194,7 @@ const q = ref('');
 const checkInProgress = ref(false);
 const captionsStatusByVideo = ref<Record<string, 'loading' | 'done' | 'error' | undefined>>({});
 const toast = useToast();
+const { setContextualActions, clearContextualActions } = useCommandPaletteActions();
 const searchInputRef = ref<HTMLInputElement | null>(null);
 const filterChannelId = ref('');
 const filterCaptions = ref<'all' | 'with' | 'without'>('all');
@@ -272,6 +293,40 @@ function resetQuickFilters() {
   filterAI.value = 'all';
   filterChannelId.value = '';
   q.value = '';
+}
+
+async function runBatchCaptionsFromPalette() {
+  if (selectedVideoIds.value.length === 0) {
+    toast.info('Najpierw zaznacz filmy, aby pobrac napisy.');
+    return;
+  }
+  await runBatchCaptions();
+}
+
+function syncContextualCommandActions() {
+  setContextualActions([
+    {
+      id: 'videos-check-new',
+      label: 'Videos: Sprawdz nowe filmy',
+      hint: checkInProgress.value ? 'Sprawdzanie w toku' : 'Uruchom reczne sprawdzenie nowych filmow',
+      keywords: 'videos check nowe filmy task',
+      run: () => triggerCheckVideos(),
+    },
+    {
+      id: 'videos-reset-filters',
+      label: 'Videos: Reset filtrow',
+      hint: 'Wyczysc wyszukiwanie i filtry',
+      keywords: 'videos reset filtrow clear',
+      run: () => resetQuickFilters(),
+    },
+    {
+      id: 'videos-batch-captions',
+      label: 'Videos: Pobierz napisy dla zaznaczonych',
+      hint: `Zaznaczone: ${selectedVideoIds.value.length}`,
+      keywords: 'videos batch captions napisy zaznaczone',
+      run: () => runBatchCaptionsFromPalette(),
+    },
+  ]);
 }
 
 const filteredVideos = computed(() => {
@@ -469,12 +524,15 @@ function closeModals() {
 
 onMounted(() => {
   loadSavedFilters();
+  syncContextualCommandActions();
   window.addEventListener('keydown', handleSlashShortcut);
 });
 
 onBeforeUnmount(() => {
+  clearContextualActions();
   window.removeEventListener('keydown', handleSlashShortcut);
 });
 
 watch([q, filterChannelId, filterCaptions, filterAI, sortMode], saveFilters, { immediate: false });
+watch([selectedVideoIds, checkInProgress], syncContextualCommandActions, { deep: true });
 </script>

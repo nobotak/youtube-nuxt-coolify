@@ -46,7 +46,7 @@
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs uppercase tracking-widest text-slate-500">Search Console Style Dark UI</div>
-            <div class="text-[11px] text-slate-500 mt-1">Skrot: g + d/c/v/n/s (dashboard/channels/videos/napisy/settings)</div>
+            <div class="text-[11px] text-slate-500 mt-1">Skroty: Ctrl/Cmd+K (palette), g + d/c/v/n/s (nawigacja)</div>
           </div>
           <button class="panel-btn-secondary" @click="toggleTableDensity">
             Tabela: {{ tableDensity === 'compact' ? 'Kompaktowa' : 'Wygodna' }}
@@ -58,6 +58,7 @@
       </div>
     </main>
     <AppToastStack />
+    <AppCommandPalette :open="showCommandPalette" @close="showCommandPalette = false" />
   </div>
 </template>
 
@@ -65,6 +66,7 @@
 const { tableDensity, toggleTableDensity } = useUiPrefs();
 const router = useRouter();
 const awaitingGoCombo = ref(false);
+const showCommandPalette = ref(false);
 let comboTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -94,10 +96,25 @@ function armGoCombo() {
 }
 
 function handleGlobalShortcuts(event: KeyboardEvent) {
+  const key = event.key.toLowerCase();
+
+  if ((event.metaKey || event.ctrlKey) && key === 'k') {
+    event.preventDefault();
+    showCommandPalette.value = !showCommandPalette.value;
+    resetGoCombo();
+    return;
+  }
+
+  if (showCommandPalette.value && key === 'escape') {
+    event.preventDefault();
+    showCommandPalette.value = false;
+    return;
+  }
+
   if (event.metaKey || event.ctrlKey || event.altKey) return;
   if (isTypingTarget(event.target)) return;
+  if (showCommandPalette.value) return;
 
-  const key = event.key.toLowerCase();
   if (key === 'g') {
     event.preventDefault();
     armGoCombo();
