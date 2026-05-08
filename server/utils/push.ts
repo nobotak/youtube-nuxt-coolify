@@ -75,6 +75,51 @@ function getAllSubscriptions(): StoredSubscription[] {
     .all() as StoredSubscription[];
 }
 
+function isValidVapidSubject(subject: string): boolean {
+  if (!subject) return false;
+  if (subject.startsWith('mailto:')) {
+    return subject.length > 'mailto:'.length;
+  }
+  try {
+    const url = new URL(subject);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+export function getPushDiagnostics() {
+  const { subject, publicKey, privateKey } = getVapidConfig();
+  const subscriptionsCount = Number(
+    (db.prepare('SELECT COUNT(*) as cnt FROM push_subscriptions').get() as { cnt?: number })?.cnt || 0
+  );
+
+  const issues: string[] = [];
+  if (!subject) issues.push('Brak PUSH_VAPID_SUBJECT');
+  if (!publicKey) issues.push('Brak PUSH_VAPID_PUBLIC_KEY');
+  if (!privateKey) issues.push('Brak PUSH_VAPID_PRIVATE_KEY');
+  if (subject && !isValidVapidSubject(subject)) {
+    issues.push('PUSH_VAPID_SUBJECT musi być mailto:... lub pełnym URL (https://...)');
+  }
+  if (publicKey && publicKey.length < 80) issues.push('PUSH_VAPID_PUBLIC_KEY wygląda na niepoprawny (za krótki)');
+  if (privateKey && privateKey.length < 40) issues.push('PUSH_VAPID_PRIVATE_KEY wygląda na niepoprawny (za krótki)');
+  if (subscriptionsCount === 0) {
+    issues.push('Brak subskrypcji push (włącz push w przeglądarce i zapisz subskrypcję).');
+  }
+
+  return {
+    hasSubject: !!subject,
+    hasPublicKey: !!publicKey,
+    hasPrivateKey: !!privateKey,
+    subjectFormatValid: isValidVapidSubject(subject),
+    subjectPreview: subject ? `${subject.slice(0, 32)}${subject.length > 32 ? '...' : ''}` : '',
+    publicKeyLength: publicKey.length,
+    privateKeyLength: privateKey.length,
+    subscriptionsCount,
+    issues,
+  };
+}
+
 function removeInvalidSubscription(endpoint: string) {
   db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(endpoint);
 }

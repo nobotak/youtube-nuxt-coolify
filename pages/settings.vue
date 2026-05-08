@@ -43,6 +43,12 @@
         <div class="text-xs text-slate-400">
           Status: {{ pushPermissionLabel }} | Subskrypcja: {{ pushSubscribed ? 'aktywna' : 'brak' }}
         </div>
+        <div class="text-xs text-slate-400">
+          VAPID: {{ pushDebugSummary }}
+        </div>
+        <ul v-if="pushIssues.length > 0" class="text-xs text-amber-300 list-disc pl-5 space-y-1">
+          <li v-for="item in pushIssues" :key="item">{{ item }}</li>
+        </ul>
         <div class="flex flex-wrap items-center gap-2">
           <button
             v-if="!pushSubscribed"
@@ -66,6 +72,13 @@
             @click="sendPushTest"
           >
             Wyślij test
+          </button>
+          <button
+            class="panel-btn-secondary"
+            :disabled="pushBusy"
+            @click="refreshPushDebug"
+          >
+            Odśwież diagnostykę
           </button>
         </div>
       </div>
@@ -164,12 +177,18 @@ const {
 const pushSupported = computed(() => pushSupportedRef.value)
 const pushSubscribed = computed(() => pushSubscribedRef.value)
 const pushBusy = computed(() => pushBusyRef.value)
+const pushIssues = ref<string[]>([])
+const pushDebugSummary = ref('brak danych')
 const pushPermissionLabel = computed(() => {
   const value = pushPermissionRef.value
   if (value === 'granted') return 'dozwolone'
   if (value === 'denied') return 'zablokowane'
   return 'oczekuje na zgode'
 })
+
+function getErrorMessage(e: any) {
+  return e?.data?.statusMessage || e?.statusMessage || e?.message || 'Wystąpił błąd'
+}
 
 watchEffect(() => {
   autoCheckEnabled.value = !!autoCheckData.value?.enabled
@@ -242,9 +261,10 @@ async function enablePush() {
   try {
     await subscribePush()
     await syncPushStatus()
+    await refreshPushDebug()
     toast.success('Push notifications zostały włączone.')
   } catch (e: any) {
-    toast.error(e?.statusMessage || e?.message || 'Nie udało się włączyć push notifications.')
+    toast.error(getErrorMessage(e))
   }
 }
 
@@ -252,9 +272,10 @@ async function disablePush() {
   try {
     await unsubscribePush()
     await syncPushStatus()
+    await refreshPushDebug()
     toast.success('Push notifications zostały wyłączone.')
   } catch (e: any) {
-    toast.error(e?.statusMessage || e?.message || 'Nie udało się wyłączyć push notifications.')
+    toast.error(getErrorMessage(e))
   }
 }
 
@@ -263,9 +284,27 @@ async function sendPushTest() {
     await sendPushTestApi()
     toast.success('Wysłano testowe powiadomienie push.')
   } catch (e: any) {
-    toast.error(e?.statusMessage || e?.message || 'Nie udało się wysłać testu push.')
+    toast.error(getErrorMessage(e))
+  } finally {
+    await refreshPushDebug()
   }
 }
+
+async function refreshPushDebug() {
+  try {
+    const result = await $fetch<any>('/api/notifications/debug')
+    const d = result?.diagnostics || {}
+    pushIssues.value = Array.isArray(d.issues) ? d.issues : []
+    pushDebugSummary.value = `subskrypcje=${Number(d.subscriptionsCount || 0)}, subject=${d.subjectFormatValid ? 'ok' : 'error'}, pubLen=${Number(d.publicKeyLength || 0)}, privLen=${Number(d.privateKeyLength || 0)}`
+  } catch (e: any) {
+    pushIssues.value = [getErrorMessage(e)]
+    pushDebugSummary.value = 'blad diagnostyki'
+  }
+}
+
+onMounted(() => {
+  refreshPushDebug()
+})
 </script>
 
 
