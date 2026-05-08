@@ -19,6 +19,19 @@ function isWithinAllowedHours(channel: any): boolean {
   return currentHour >= fromHour || currentHour < toHour;
 }
 
+function isChannelDue(channel: any, nowMs = Date.now()): boolean {
+  const intervalMs = Math.max(1, Number(channel?.check_interval || 1800000));
+  const lastCheckRaw = channel?.last_check;
+  if (!lastCheckRaw) return true;
+  const lastCheckMs = new Date(lastCheckRaw).getTime();
+  if (!Number.isFinite(lastCheckMs)) return true;
+  return nowMs - lastCheckMs >= intervalMs;
+}
+
+function markChannelChecked(channelId: string): void {
+  db.prepare('UPDATE channels SET last_check = CURRENT_TIMESTAMP WHERE channel_id = ?').run(channelId);
+}
+
 export async function checkChannelVideos(channel: any) {
   console.log(`Checking videos for channel: ${channel.channel_name}`);
   try { recordLog('check_channel_start', channel.channel_name || channel.channel_id); } catch {}
@@ -110,7 +123,19 @@ export async function checkAllActiveChannels() {
             continue;
         }
         await checkChannelVideos(channel);
+        markChannelChecked(channel.channel_id);
     }
     console.log('Finished checking all active channels.');
     try { recordLog('check_all_done'); } catch {}
+}
+
+export async function checkDueActiveChannels() {
+    const nowMs = Date.now();
+    const channels = db.prepare('SELECT * FROM channels WHERE is_active = 1').all();
+    for (const channel of channels) {
+        if (!isWithinAllowedHours(channel)) continue;
+        if (!isChannelDue(channel, nowMs)) continue;
+        await checkChannelVideos(channel);
+        markChannelChecked(channel.channel_id);
+    }
 }

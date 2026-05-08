@@ -109,8 +109,17 @@ function initializeDB() {
     );
   `;
 
+  const createAppSettingsTable = `
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
   db.exec(createChannelsTable);
   db.exec(createVideosTable);
+  db.exec(createAppSettingsTable);
   ensureChannelsTimeWindowColumns();
 
   console.log('Database tables are ready.');

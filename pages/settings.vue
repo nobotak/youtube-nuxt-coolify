@@ -9,6 +9,29 @@
     </div>
 
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-8">
+      <h2 class="text-xl font-semibold mb-4">Auto new videos checking</h2>
+      <label class="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300">
+        <input type="checkbox" v-model="autoCheckEnabled" class="accent-blue-600" />
+        Włącz automatyczne sprawdzanie nowych filmów
+      </label>
+      <div class="mt-3">
+        <button
+          @click="saveAutoCheckSetting"
+          :disabled="autoCheckSaving"
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+        >
+          {{ autoCheckSaving ? 'Zapisywanie...' : 'Zapisz ustawienie' }}
+        </button>
+        <span v-if="autoCheckMessage" class="ml-3 text-sm" :class="autoCheckSuccess ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+          {{ autoCheckMessage }}
+        </span>
+      </div>
+      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+        Scheduler uruchamia się co minutę i sprawdza tylko kanały aktywne, które przekroczyły swój interwał i mieszczą się w przedziale godzinowym.
+      </p>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-8">
       <h2 class="text-xl font-semibold mb-4">Database restore</h2>
       <p class="text-gray-600 dark:text-gray-300 mb-4">Wgraj plik .db aby podmienić bieżącą bazę (aplikacja automatycznie przełączy połączenie).</p>
       <form @submit.prevent="onUpload">
@@ -69,7 +92,16 @@ const success = ref(false)
 const progressText = ref('')
 const MAX_UPLOAD_MB = 25
 const { data: logsData, pending: logsPending, refresh: refreshLogs } = await useFetch('/api/logs?limit=20')
+const { data: autoCheckData, refresh: refreshAutoCheck } = await useFetch('/api/settings/auto-check')
 const logs = computed(() => logsData.value || [])
+const autoCheckEnabled = ref(false)
+const autoCheckSaving = ref(false)
+const autoCheckMessage = ref('')
+const autoCheckSuccess = ref(false)
+
+watchEffect(() => {
+  autoCheckEnabled.value = !!autoCheckData.value?.enabled
+})
 
 async function onUpload() {
   if (!fileInput.value || !fileInput.value.files || fileInput.value.files.length === 0) {
@@ -108,6 +140,25 @@ async function onUpload() {
   } finally {
     uploading.value = false
     progressText.value = ''
+  }
+}
+
+async function saveAutoCheckSetting() {
+  autoCheckSaving.value = true
+  autoCheckMessage.value = ''
+  try {
+    await $fetch('/api/settings/auto-check', {
+      method: 'PUT',
+      body: { enabled: autoCheckEnabled.value },
+    })
+    await refreshAutoCheck()
+    autoCheckSuccess.value = true
+    autoCheckMessage.value = 'Zapisano ustawienie.'
+  } catch (e: any) {
+    autoCheckSuccess.value = false
+    autoCheckMessage.value = e?.data?.statusMessage || 'Nie udało się zapisać ustawienia.'
+  } finally {
+    autoCheckSaving.value = false
   }
 }
 </script>
