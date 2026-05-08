@@ -17,11 +17,11 @@ const { toasts, removeToast } = useToast();
 
 function toastClass(type: 'success' | 'error' | 'info') {
   if (type === 'success') {
-    return 'bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-700 text-green-800 dark:text-green-200';
+    return 'bg-emerald-900/40 border-emerald-700/60 text-emerald-200';
   }
   if (type === 'error') {
-    return 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-700 text-red-800 dark:text-red-200';
+    return 'bg-red-900/40 border-red-700/60 text-red-200';
   }
-  return 'bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200';
+  return 'bg-blue-900/40 border-blue-700/60 text-blue-200';
 }
 </script>

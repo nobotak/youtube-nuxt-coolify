@@ -1,16 +1,16 @@
 <template>
   <div>
-    <h1 class="text-3xl font-bold mb-6">Settings</h1>
+    <h1 class="text-3xl font-bold mb-6 text-slate-100">Settings</h1>
 
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-8">
-      <h2 class="text-xl font-semibold mb-4">Database backup</h2>
-      <p class="text-gray-600 dark:text-gray-300 mb-4">Pobierz bieżący plik bazy SQLite.</p>
-      <a :href="'/api/settings/backup'" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Pobierz backup</a>
+    <div class="panel-card p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-slate-100">Database backup</h2>
+      <p class="panel-subtitle mb-4">Pobierz bieżący plik bazy SQLite.</p>
+      <a :href="'/api/settings/backup'" class="panel-btn-primary">Pobierz backup</a>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-8">
-      <h2 class="text-xl font-semibold mb-4">Auto new videos checking</h2>
-      <label class="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300">
+    <div class="panel-card p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-slate-100">Auto new videos checking</h2>
+      <label class="inline-flex items-center gap-2 text-slate-300">
         <input type="checkbox" v-model="autoCheckEnabled" class="accent-blue-600" />
         Włącz automatyczne sprawdzanie nowych filmów
       </label>
@@ -18,26 +18,26 @@
         <button
           @click="saveAutoCheckSetting"
           :disabled="autoCheckSaving"
-          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+          class="panel-btn-primary"
         >
           {{ autoCheckSaving ? 'Zapisywanie...' : 'Zapisz ustawienie' }}
         </button>
-        <span v-if="autoCheckMessage" class="ml-3 text-sm" :class="autoCheckSuccess ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+        <span v-if="autoCheckMessage" class="ml-3 text-sm" :class="autoCheckSuccess ? 'text-emerald-300' : 'text-red-300'">
           {{ autoCheckMessage }}
         </span>
       </div>
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+      <p class="mt-2 text-xs text-slate-400">
         Scheduler uruchamia się co minutę i sprawdza tylko kanały aktywne, które przekroczyły swój interwał i mieszczą się w przedziale godzinowym.
       </p>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-8">
-      <h2 class="text-xl font-semibold mb-4">Database restore</h2>
-      <p class="text-gray-600 dark:text-gray-300 mb-4">Wgraj plik .db aby podmienić bieżącą bazę (aplikacja automatycznie przełączy połączenie).</p>
+    <div class="panel-card p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-slate-100">Database restore</h2>
+      <p class="panel-subtitle mb-4">Wgraj plik .db aby podmienić bieżącą bazę (aplikacja automatycznie przełączy połączenie).</p>
       <form @submit.prevent="onUpload">
-        <input ref="fileInput" type="file" accept=".db" class="mb-4 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+        <input ref="fileInput" type="file" accept=".db" class="panel-input mb-4" />
         <div class="flex items-center gap-3">
-          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-60" :disabled="uploading">
+          <button type="submit" class="panel-btn bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-60" :disabled="uploading">
             <span v-if="!uploading">Wgraj bazę</span>
             <span v-else class="inline-flex items-center gap-2">
               <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -47,38 +47,50 @@
               Wgrywanie...
             </span>
           </button>
-          <span v-if="message" class="text-sm" :class="success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ message }}</span>
+          <span v-if="message" class="text-sm" :class="success ? 'text-emerald-300' : 'text-red-300'">{{ message }}</span>
         </div>
-        <div v-if="uploading" class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+        <div v-if="uploading" class="mt-3 text-xs text-slate-400">
           {{ progressText }}
         </div>
       </form>
     </div>
 
     <!-- Logs -->
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+    <div class="panel-card p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold">Logs</h2>
-        <button @click="refreshLogs" class="text-sm px-3 py-1 rounded border border-gray-300 dark:border-gray-600">Odśwież</button>
+        <h2 class="text-xl font-semibold text-slate-100">Logs</h2>
+        <button @click="refreshLogs" class="panel-btn-secondary">Odśwież</button>
       </div>
-      <div v-if="logsPending" class="text-center text-sm">Ładowanie logów…</div>
+      <div v-if="logsPending" class="space-y-3">
+        <div v-for="i in 6" :key="`logs-skel-${i}`" class="grid grid-cols-3 gap-3">
+          <div class="skeleton-line h-4" />
+          <div class="skeleton-line h-4" />
+          <div class="skeleton-line h-4" />
+        </div>
+      </div>
       <div v-else>
-        <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
-          <thead>
-            <tr class="text-gray-600 dark:text-gray-300">
-              <th class="text-left px-4 py-2">Czas</th>
-              <th class="text-left px-4 py-2">Akcja</th>
-              <th class="text-left px-4 py-2">Szczegóły</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in logs" :key="row.id" class="border-t border-gray-200 dark:border-gray-700">
-              <td class="px-4 py-2">{{ new Date(row.created_at).toLocaleString('pl-PL') }}</td>
-              <td class="px-4 py-2">{{ row.action }}</td>
-              <td class="px-4 py-2 whitespace-pre-wrap">{{ row.details }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-if="logs.length === 0" class="empty-state">
+          <div class="empty-state-title">Brak logow</div>
+          <div class="empty-state-subtitle">Logi pojawia sie po pierwszych akcjach w aplikacji.</div>
+        </div>
+        <div v-else class="overflow-auto max-h-[55vh]">
+          <table class="panel-table panel-table-sticky">
+            <thead>
+              <tr>
+                <th class="text-left px-4 py-2">Czas</th>
+                <th class="text-left px-4 py-2">Akcja</th>
+                <th class="text-left px-4 py-2">Szczegóły</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in logs" :key="row.id">
+                <td class="px-4 py-2">{{ new Date(row.created_at).toLocaleString('pl-PL') }}</td>
+                <td class="px-4 py-2">{{ row.action }}</td>
+                <td class="px-4 py-2 whitespace-pre-wrap">{{ row.details }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>

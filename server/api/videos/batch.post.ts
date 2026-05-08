@@ -1,6 +1,7 @@
 import { db } from '~/server/db';
 import { getYoutubeTranscript } from '~/server/utils/turboscribe';
 import { analyzeTranscript } from '~/server/utils/openai';
+import { assertAssistantAllowed, sanitizeTranscriptForAnalysis } from '~/server/utils/openai-policy';
 
 function captionsToTranscript(raw: unknown): string {
   if (!raw) return '';
@@ -41,6 +42,9 @@ export default defineEventHandler(async (event) => {
   if (action === 'ai' && !assistantId) {
     throw createError({ statusCode: 400, statusMessage: 'assistantId is required for AI batch action' });
   }
+  if (action === 'ai') {
+    assertAssistantAllowed(assistantId);
+  }
 
   let processed = 0;
   let updated = 0;
@@ -62,7 +66,8 @@ export default defineEventHandler(async (event) => {
         failed.push({ videoId, error: 'Brak napisów do analizy AI.' });
         continue;
       }
-      const analysis = await analyzeTranscript(transcript, assistantId);
+      const safeTranscript = sanitizeTranscriptForAnalysis(transcript);
+      const analysis = await analyzeTranscript(safeTranscript, assistantId);
       db.prepare('UPDATE videos SET response = ? WHERE video_id = ?').run(analysis, videoId);
       updated += 1;
     } catch (err: any) {

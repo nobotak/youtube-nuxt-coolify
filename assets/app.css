@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #__nuxt {
+    font-family: 'Inter', sans-serif;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950;
+  }
+}
+
+@layer components {
+  .panel-card {
+    @apply rounded-xl border border-slate-800 bg-slate-900/80 shadow-sm backdrop-blur;
+  }
+
+  .panel-card-soft {
+    @apply rounded-xl border border-slate-800/80 bg-slate-900/40;
+  }
+
+  .panel-title {
+    @apply text-slate-100 font-semibold tracking-tight;
+  }
+
+  .panel-subtitle {
+    @apply text-slate-400 text-sm;
+  }
+
+  .panel-input {
+    @apply w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none;
+  }
+
+  .panel-btn {
+    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors;
+  }
+
+  .panel-btn-primary {
+    @apply panel-btn bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .panel-btn-secondary {
+    @apply panel-btn border border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .panel-toolbar-sticky {
+    @apply sticky top-16 z-10 mb-4 rounded-xl border border-slate-800 bg-slate-900/95 p-3 backdrop-blur;
+  }
+
+  .panel-table {
+    @apply min-w-full text-sm divide-y divide-slate-800;
+  }
+
+  .panel-table thead th {
+    @apply px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-400;
+  }
+
+  .panel-table-sticky thead th {
+    @apply sticky top-0 z-10 bg-slate-900/95 backdrop-blur;
+  }
+
+  :root[data-table-density='compact'] .panel-table thead th {
+    @apply py-1.5 text-[11px];
+  }
+
+  :root[data-table-density='compact'] .panel-table tbody td {
+    @apply py-2 text-xs;
+  }
+
+  :root[data-table-density='compact'] .panel-btn {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+
+  .panel-table tbody tr {
+    @apply border-t border-slate-800 transition-colors hover:bg-slate-800/40;
+  }
+
+  .panel-table tbody td {
+    @apply px-4 py-3 text-slate-200;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white;
+  }
+
+  .sidebar-link.router-link-active {
+    @apply bg-slate-800 text-white;
+  }
+
+  .empty-state {
+    @apply rounded-xl border border-dashed border-slate-700 bg-slate-900/40 px-6 py-10 text-center;
+  }
+
+  .empty-state-title {
+    @apply text-base font-semibold text-slate-200;
+  }
+
+  .empty-state-subtitle {
+    @apply mt-2 text-sm text-slate-400;
+  }
+
+  .skeleton-line {
+    @apply h-3 animate-pulse rounded bg-slate-800;
+  }
+
+  .skeleton-line-lg {
+    @apply h-5 animate-pulse rounded bg-slate-800;
+  }
+
+  .stat-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-slate-600 hover:text-slate-100;
+  }
+
+  .stat-chip-active {
+    @apply border-blue-500/70 bg-blue-900/30 text-blue-200;
+  }
+}

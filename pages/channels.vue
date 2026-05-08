@@ -1,137 +1,171 @@
 <template>
   <div>
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
-      <h1 class="text-3xl font-bold">Channels</h1>
+      <h1 class="text-3xl font-bold text-slate-100">Channels</h1>
       <div class="flex items-center gap-2">
-        <div class="bg-gray-100 dark:bg-gray-700 rounded p-1 inline-flex">
+        <div class="bg-slate-800 rounded p-1 inline-flex">
           <button class="px-3 py-1 rounded text-sm"
-                  :class="viewMode === 'cards' ? 'bg-white dark:bg-gray-200 shadow text-gray-800 dark:text-gray-900' : 'text-gray-600 dark:text-gray-300'"
+                  :class="viewMode === 'cards' ? 'bg-slate-700 shadow text-white' : 'text-slate-400'"
                   @click="viewMode = 'cards'">Karty</button>
           <button class="px-3 py-1 rounded text-sm"
-                  :class="viewMode === 'list' ? 'bg-white dark:bg-gray-200 shadow text-gray-800 dark:text-gray-900' : 'text-gray-600 dark:text-gray-300'"
+                  :class="viewMode === 'list' ? 'bg-slate-700 shadow text-white' : 'text-slate-400'"
                   @click="viewMode = 'list'">Lista</button>
         </div>
-        <button @click="showAddChannelModal = true" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600">
+        <button @click="showAddChannelModal = true" class="panel-btn-primary">
           + Add Channel
         </button>
       </div>
     </div>
 
-    <div v-if="pending" class="text-center">Loading...</div>
+    <div v-if="pending" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="i in 6" :key="`channels-skel-${i}`" class="panel-card p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-16 h-16 rounded-full bg-slate-800 animate-pulse" />
+          <div class="flex-1 space-y-2">
+            <div class="skeleton-line-lg w-40" />
+            <div class="skeleton-line w-28" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="panel-card-soft p-3"><div class="skeleton-line h-6" /></div>
+          <div class="panel-card-soft p-3"><div class="skeleton-line h-6" /></div>
+          <div class="panel-card-soft p-3"><div class="skeleton-line h-6" /></div>
+        </div>
+      </div>
+    </div>
     <div v-else-if="error" class="text-center text-red-500">Error loading channels.</div>
-    <!-- Cards view -->
-    <div v-else-if="viewMode === 'cards'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="channel in channels" :key="channel.channel_id" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+    <div v-else-if="!channels || channels.length === 0" class="empty-state">
+      <div class="empty-state-title">Brak kanalow</div>
+      <div class="empty-state-subtitle">Dodaj pierwszy kanal YouTube, aby rozpoczac monitoring.</div>
+    </div>
+    <template v-else>
+      <div class="mb-4 flex flex-wrap gap-2">
+        <button class="stat-chip" :class="{ 'stat-chip-active': statusFilter === 'all' }" @click="statusFilter = 'all'">Wszystkie: {{ totalChannels }}</button>
+        <button class="stat-chip" :class="{ 'stat-chip-active': statusFilter === 'active' }" @click="statusFilter = 'active'">Aktywne: {{ activeChannels }}</button>
+        <button class="stat-chip" :class="{ 'stat-chip-active': statusFilter === 'inactive' }" @click="statusFilter = 'inactive'">Nieaktywne: {{ inactiveChannels }}</button>
+        <span class="stat-chip">Z oknem godzinowym: {{ channelsWithWindow }}</span>
+        <span class="stat-chip">Bez okna: {{ channelsWithoutWindow }}</span>
+      </div>
+
+      <div v-if="visibleChannels.length === 0" class="empty-state">
+        <div class="empty-state-title">Brak kanalow dla wybranego filtra</div>
+        <div class="empty-state-subtitle">Zmien filtr statusu, aby zobaczyc pozostale kanaly.</div>
+      </div>
+
+      <!-- Cards view -->
+      <div v-else-if="viewMode === 'cards'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-for="channel in visibleChannels" :key="channel.channel_id" class="panel-card p-6">
         <div class="flex items-center justify-between">
           <div class="flex items-center">
             <img :src="channel.thumbnail_url" alt="Channel thumbnail" class="w-16 h-16 rounded-full mr-4">
             <div>
               <h2 class="text-xl font-bold">{{ channel.channel_name }}</h2>
-              <p class="text-gray-500 dark:text-gray-400 text-[10px]">{{ channel.channel_id }}</p>
+              <p class="text-slate-400 text-[10px]">{{ channel.channel_id }}</p>
             </div>
           </div>
           <span class="text-xs px-2 py-1 rounded-full"
-                :class="channel.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
+                :class="channel.is_active ? 'bg-emerald-900/40 text-emerald-300' : 'bg-slate-800 text-slate-300'">
             {{ channel.is_active ? 'Aktywny' : 'Nieaktywny' }}
           </span>
         </div>
 
         <div class="grid grid-cols-3 gap-2 mt-4">
-          <div class="bg-gray-50 dark:bg-gray-700 rounded p-3 text-center">
+          <div class="panel-card-soft p-3 text-center">
             <div class="text-lg font-semibold">{{ countVideosByChannel(channel.channel_id) }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-300">Filmów</div>
+            <div class="text-xs text-slate-400">Filmów</div>
           </div>
-          <div class="bg-gray-50 dark:bg-gray-700 rounded p-3 text-center">
+          <div class="panel-card-soft p-3 text-center">
             <div class="text-lg font-semibold">{{ countCaptionsByChannel(channel.channel_id) }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-300">Napisów</div>
+            <div class="text-xs text-slate-400">Napisów</div>
           </div>
-          <div class="bg-gray-50 dark:bg-gray-700 rounded p-3 text-center">
+          <div class="panel-card-soft p-3 text-center">
             <div class="text-lg font-semibold">{{ countAIByChannel(channel.channel_id) }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-300">Analiz AI</div>
+            <div class="text-xs text-slate-400">Analiz AI</div>
           </div>
         </div>
 
-        <div class="mt-4 flex items-center justify-between pt-3 border-t">
-          <div class="text-xs text-gray-500">
+        <div class="mt-4 flex items-center justify-between pt-3 border-t border-slate-800">
+          <div class="text-xs text-slate-400">
             Aktualizacja: {{ formatDateTime(channel.last_check) }}
             <div class="mt-1">Następne: {{ formatDateTime(getNextCheckAt(channel)) }}</div>
           </div>
-          <div class="flex items-center gap-2 text-gray-600">
-            <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">
+          <div class="flex items-center gap-2 text-slate-400">
+            <button @click="viewChannel(channel.channel_id)" class="hover:text-slate-200" title="Podgląd">
               <span class="material-symbols-outlined text-base">visibility</span>
             </button>
-            <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-gray-800" title="Refresh">
+            <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-slate-200" title="Refresh">
               <span class="material-symbols-outlined text-base">refresh</span>
             </button>
-            <button @click="openEdit(channel)" class="hover:text-gray-800" title="Edytuj">
+            <button @click="openEdit(channel)" class="hover:text-slate-200" title="Edytuj">
               <span class="material-symbols-outlined text-base">edit</span>
             </button>
-            <button @click="confirmRemove(channel)" class="text-red-500 hover:text-red-700" title="Usuń">
+            <button @click="confirmRemove(channel)" class="text-red-400 hover:text-red-300" title="Usuń">
+              <span class="material-symbols-outlined text-base">delete</span>
+            </button>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- List view -->
+      <div v-else class="panel-card overflow-hidden">
+        <div class="hidden md:grid grid-cols-6 gap-4 px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
+          <div>Kanał</div>
+          <div>Status</div>
+          <div>Filmów</div>
+          <div>Napisy</div>
+          <div>Następne</div>
+          <div>Akcje</div>
+        </div>
+        <div v-for="channel in visibleChannels" :key="channel.channel_id" class="grid grid-cols-1 md:grid-cols-6 gap-4 px-6 py-4 border-t border-slate-800">
+          <div class="flex items-center gap-3">
+            <img :src="channel.thumbnail_url" alt="thumb" class="w-10 h-10 rounded-full"/>
+            <div class="min-w-0">
+              <div class="font-medium truncate" :title="channel.channel_name">{{ channel.channel_name }}</div>
+              <div class="text-slate-400 text-xs truncate" :title="channel.channel_id">{{ channel.channel_id }}</div>
+            </div>
+          </div>
+          <div class="md:text-center">
+            <span class="text-xs px-2 py-1 rounded-full"
+                  :class="channel.is_active ? 'bg-emerald-900/40 text-emerald-300' : 'bg-slate-800 text-slate-300'">
+              {{ channel.is_active ? 'Aktywny' : 'Nieaktywny' }}
+            </span>
+          </div>
+          <div class="md:text-center text-sm">{{ countVideosByChannel(channel.channel_id) }}</div>
+          <div class="md:text-center text-sm">{{ countCaptionsByChannel(channel.channel_id) }}</div>
+          <div class="md:text-center text-sm text-slate-300">{{ formatDateTime(getNextCheckAt(channel)) }}</div>
+          <div class="md:text-center flex items-center gap-3 text-slate-400">
+            <button @click="viewChannel(channel.channel_id)" class="hover:text-slate-200" title="Podgląd">
+              <span class="material-symbols-outlined text-base">visibility</span>
+            </button>
+            <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-slate-200" title="Refresh">
+              <span class="material-symbols-outlined text-base">refresh</span>
+            </button>
+            <button @click="openEdit(channel)" class="hover:text-slate-200" title="Edytuj">
+              <span class="material-symbols-outlined text-base">edit</span>
+            </button>
+            <button @click="confirmRemove(channel)" class="text-red-400 hover:text-red-300" title="Usuń">
               <span class="material-symbols-outlined text-base">delete</span>
             </button>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- List view -->
-    <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-      <div class="hidden md:grid grid-cols-6 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
-        <div>Kanał</div>
-        <div>Status</div>
-        <div>Filmów</div>
-        <div>Napisy</div>
-        <div>Następne</div>
-        <div>Akcje</div>
-      </div>
-      <div v-for="channel in channels" :key="channel.channel_id" class="grid grid-cols-1 md:grid-cols-6 gap-4 px-6 py-4 border-t">
-        <div class="flex items-center gap-3">
-          <img :src="channel.thumbnail_url" alt="thumb" class="w-10 h-10 rounded-full"/>
-          <div class="min-w-0">
-            <div class="font-medium truncate" :title="channel.channel_name">{{ channel.channel_name }}</div>
-            <div class="text-gray-500 text-xs truncate" :title="channel.channel_id">{{ channel.channel_id }}</div>
-          </div>
-        </div>
-        <div class="md:text-center">
-          <span class="text-xs px-2 py-1 rounded-full"
-                :class="channel.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
-            {{ channel.is_active ? 'Aktywny' : 'Nieaktywny' }}
-          </span>
-        </div>
-        <div class="md:text-center text-sm">{{ countVideosByChannel(channel.channel_id) }}</div>
-        <div class="md:text-center text-sm">{{ countCaptionsByChannel(channel.channel_id) }}</div>
-        <div class="md:text-center text-sm text-gray-600 dark:text-gray-300">{{ formatDateTime(getNextCheckAt(channel)) }}</div>
-        <div class="md:text-center flex items-center gap-3">
-          <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">
-            <span class="material-symbols-outlined text-base">visibility</span>
-          </button>
-          <button @click="refreshChannelNow(channel.channel_id)" class="hover:text-gray-800" title="Refresh">
-            <span class="material-symbols-outlined text-base">refresh</span>
-          </button>
-          <button @click="openEdit(channel)" class="hover:text-gray-800" title="Edytuj">
-            <span class="material-symbols-outlined text-base">edit</span>
-          </button>
-          <button @click="confirmRemove(channel)" class="text-red-500 hover:text-red-700" title="Usuń">
-            <span class="material-symbols-outlined text-base">delete</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    </template>
     
     <!-- Add Channel Modal -->
-    <div v-if="showAddChannelModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div class="bg-white p-8 rounded-lg shadow-lg w-1/3">
-        <h2 class="text-2xl font-bold mb-4">Add New Channel</h2>
+    <div v-if="showAddChannelModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div class="panel-card p-8 w-full max-w-xl">
+        <h2 class="text-2xl font-bold mb-4 text-slate-100">Add New Channel</h2>
         <form @submit.prevent="addChannel">
           <div class="mb-4">
-            <label for="channel_id" class="block text-gray-700">Channel ID or URL</label>
-            <input type="text" v-model="newChannel.channel_id" id="channel_id" class="w-full px-3 py-2 border rounded-lg" required>
+            <label for="channel_id" class="block text-slate-300">Channel ID or URL</label>
+            <input type="text" v-model="newChannel.channel_id" id="channel_id" class="panel-input mt-1" required>
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700">Interwał sprawdzania</label>
+            <label class="block text-slate-300">Interwał sprawdzania</label>
             <div class="flex gap-2">
-              <input type="number" min="5" v-model.number="intervalValue" class="w-1/2 px-3 py-2 border rounded-lg">
-              <select v-model="intervalUnit" class="w-1/2 px-3 py-2 border rounded-lg">
+              <input type="number" min="5" v-model.number="intervalValue" class="panel-input w-1/2">
+              <select v-model="intervalUnit" class="panel-input w-1/2">
                 <option value="min">minut</option>
                 <option value="h">godzin</option>
                 <option value="d">dni</option>
@@ -139,19 +173,19 @@
             </div>
           </div>
           <div class="mb-4">
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <label class="inline-flex items-center gap-2 text-sm text-slate-300">
               <input type="checkbox" v-model="timeWindowEnabled" />
               Ogranicz sprawdzanie do godzin
             </label>
             <div class="flex gap-2 mt-2">
-              <input type="number" min="0" max="23" v-model.number="timeWindowFromHour" :disabled="!timeWindowEnabled" class="w-1/2 px-3 py-2 border rounded-lg disabled:opacity-50" placeholder="Od (0-23)">
-              <input type="number" min="0" max="23" v-model.number="timeWindowToHour" :disabled="!timeWindowEnabled" class="w-1/2 px-3 py-2 border rounded-lg disabled:opacity-50" placeholder="Do (0-23)">
+              <input type="number" min="0" max="23" v-model.number="timeWindowFromHour" :disabled="!timeWindowEnabled" class="panel-input w-1/2 disabled:opacity-50" placeholder="Od (0-23)">
+              <input type="number" min="0" max="23" v-model.number="timeWindowToHour" :disabled="!timeWindowEnabled" class="panel-input w-1/2 disabled:opacity-50" placeholder="Do (0-23)">
             </div>
-            <p class="text-xs text-gray-500 mt-1">Przykład: 16 do 22 oznacza sprawdzanie tylko między 16:00 a 22:00.</p>
+            <p class="text-xs text-slate-400 mt-1">Przykład: 16 do 22 oznacza sprawdzanie tylko między 16:00 a 22:00.</p>
           </div>
           <div class="flex justify-end">
-            <button type="button" @click="showAddChannelModal = false" class="text-gray-600 mr-4">Cancel</button>
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg">Add Channel</button>
+            <button type="button" @click="showAddChannelModal = false" class="panel-btn-secondary mr-2">Cancel</button>
+            <button type="submit" class="panel-btn-primary">Add Channel</button>
           </div>
         </form>
       </div>
@@ -159,29 +193,29 @@
 
     <!-- Edit Channel Modal -->
     <div v-if="editing" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-full max-w-lg border border-gray-200 dark:border-gray-700">
-        <h3 class="text-xl font-semibold mb-4 dark:text-gray-100">Edytuj kanał</h3>
+      <div class="panel-card p-6 w-full max-w-lg">
+        <h3 class="text-xl font-semibold mb-4 text-slate-100">Edytuj kanał</h3>
         <div class="space-y-3">
           <div>
-            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Nazwa</label>
-            <input v-model="editing.channel_name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"/>
+            <label class="block text-sm text-slate-300 mb-1">Nazwa</label>
+            <input v-model="editing.channel_name" class="panel-input"/>
           </div>
           <div>
-            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">URL</label>
-            <input v-model="editing.channel_url" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"/>
+            <label class="block text-sm text-slate-300 mb-1">URL</label>
+            <input v-model="editing.channel_url" class="panel-input"/>
           </div>
           <div>
-            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Interwał sprawdzania</label>
+            <label class="block text-sm text-slate-300 mb-1">Interwał sprawdzania</label>
             <div class="grid grid-cols-2 gap-2">
               <input
                 v-model.number="editIntervalValue"
                 type="number"
                 min="1"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                class="panel-input"
               />
               <select
                 v-model="editIntervalUnit"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                class="panel-input"
               >
                 <option value="ms">ms</option>
                 <option value="s">sekundy</option>
@@ -190,8 +224,8 @@
               </select>
             </div>
           </div>
-          <div class="border-t border-gray-200 dark:border-gray-700 pt-3">
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <div class="border-t border-slate-800 pt-3">
+            <label class="inline-flex items-center gap-2 text-sm text-slate-300">
               <input type="checkbox" v-model="editTimeWindowEnabled" class="accent-blue-600"/>
               Ogranicz sprawdzanie do godzin
             </label>
@@ -202,7 +236,7 @@
                 min="0"
                 max="23"
                 :disabled="!editTimeWindowEnabled"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                class="panel-input disabled:opacity-50"
                 placeholder="Od (0-23)"
               />
               <input
@@ -211,20 +245,20 @@
                 min="0"
                 max="23"
                 :disabled="!editTimeWindowEnabled"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                class="panel-input disabled:opacity-50"
                 placeholder="Do (0-23)"
               />
             </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Przykład: 16 do 22 oznacza sprawdzanie tylko między 16:00 a 22:00.</p>
+            <p class="text-xs text-slate-400 mt-1">Przykład: 16 do 22 oznacza sprawdzanie tylko między 16:00 a 22:00.</p>
           </div>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-300">
             <input type="checkbox" v-model="editing.is_active" class="accent-blue-600"/>
             Aktywny
           </label>
         </div>
         <div class="mt-5 flex justify-end gap-2">
-          <button @click="cancelEdit" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Anuluj</button>
-          <button @click="saveEdit" class="px-4 py-2 rounded bg-blue-600 text-white">Zapisz</button>
+          <button @click="cancelEdit" class="panel-btn-secondary">Anuluj</button>
+          <button @click="saveEdit" class="panel-btn-primary">Zapisz</button>
         </div>
       </div>
     </div>
@@ -249,6 +283,42 @@ const timeWindowFromHour = ref<number>(16);
 const timeWindowToHour = ref<number>(22);
 
 const viewMode = ref<'cards' | 'list'>('cards');
+const statusFilter = ref<'all' | 'active' | 'inactive'>('all');
+const totalChannels = computed(() => (channels.value || []).length);
+const activeChannels = computed(() => (channels.value || []).filter((c: any) => !!c?.is_active).length);
+const inactiveChannels = computed(() => Math.max(0, totalChannels.value - activeChannels.value));
+const channelsWithWindow = computed(() => (channels.value || []).filter((c: any) => Number.isInteger(Number(c?.check_from_hour)) && Number.isInteger(Number(c?.check_to_hour))).length);
+const channelsWithoutWindow = computed(() => Math.max(0, totalChannels.value - channelsWithWindow.value));
+const visibleChannels = computed<any[]>(() => {
+  const list = (channels.value || []) as any[];
+  if (statusFilter.value === 'active') return list.filter((c: any) => !!c?.is_active);
+  if (statusFilter.value === 'inactive') return list.filter((c: any) => !c?.is_active);
+  return list;
+});
+
+const CHANNELS_UI_STORAGE_KEY = 'channels-ui-v1';
+
+function loadSavedUiState() {
+  if (!process.client) return;
+  try {
+    const raw = localStorage.getItem(CHANNELS_UI_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as { viewMode?: 'cards' | 'list'; statusFilter?: 'all' | 'active' | 'inactive' };
+    if (parsed.viewMode === 'cards' || parsed.viewMode === 'list') viewMode.value = parsed.viewMode;
+    if (parsed.statusFilter === 'all' || parsed.statusFilter === 'active' || parsed.statusFilter === 'inactive') statusFilter.value = parsed.statusFilter;
+  } catch {
+    // Ignore localStorage parse errors.
+  }
+}
+
+function saveUiState() {
+  if (!process.client) return;
+  try {
+    localStorage.setItem(CHANNELS_UI_STORAGE_KEY, JSON.stringify({ viewMode: viewMode.value, statusFilter: statusFilter.value }));
+  } catch {
+    // Ignore localStorage write errors.
+  }
+}
 
 function countVideosByChannel(channelId: string): number {
   if (!videos.value) return 0;
@@ -447,4 +517,10 @@ function splitIntervalMs(intervalMsRaw: unknown): { value: number; unit: 'ms' | 
   }
   return { value: intervalMs, unit: 'ms' };
 }
+
+onMounted(() => {
+  loadSavedUiState();
+});
+
+watch([viewMode, statusFilter], saveUiState, { immediate: false });
 </script>

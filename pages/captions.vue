@@ -1,62 +1,81 @@
 <template>
   <div>
-    <h1 class="text-3xl font-bold mb-6">Videos with Captions</h1>
+    <h1 class="text-3xl font-bold mb-6 text-slate-100">Videos with Captions</h1>
 
-    <div v-if="pending" class="text-center">Loading...</div>
+    <div v-if="pending" class="panel-card p-6">
+      <div class="skeleton-line-lg w-56 mb-4" />
+      <div class="space-y-3">
+        <div v-for="i in 8" :key="`captions-skel-${i}`" class="grid grid-cols-3 gap-3">
+          <div class="skeleton-line h-4" />
+          <div class="skeleton-line h-4" />
+          <div class="skeleton-line h-4" />
+        </div>
+      </div>
+    </div>
     <div v-else-if="error" class="text-center text-red-500">Error loading videos.</div>
 
-    <div v-else class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-      <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+    <div v-else class="panel-card p-6">
+      <div class="panel-toolbar-sticky grid grid-cols-1 md:grid-cols-2 gap-2">
         <input
+          ref="searchInputRef"
           v-model="q"
           type="text"
           placeholder="Szukaj po tytule, kanale, ID..."
-          class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          class="panel-input"
         />
         <select
           v-model="sortMode"
-          class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          class="panel-input"
         >
           <option value="newest">Najnowsze</option>
           <option value="oldest">Najstarsze</option>
           <option value="title">Tytuł A-Z</option>
         </select>
       </div>
-      <div v-if="videosWithCaptions.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
-        Brak filmów z napisami.
+      <div class="mb-4 flex flex-wrap gap-2">
+        <span class="stat-chip">Wyniki: {{ videosWithCaptions.length }}</span>
+        <button class="stat-chip" :class="{ 'stat-chip-active': sortMode === 'newest' }" @click="sortMode = 'newest'">Najnowsze</button>
+        <button class="stat-chip" :class="{ 'stat-chip-active': sortMode === 'oldest' }" @click="sortMode = 'oldest'">Najstarsze</button>
+        <button class="stat-chip" :class="{ 'stat-chip-active': sortMode === 'title' }" @click="sortMode = 'title'">Tytul A-Z</button>
       </div>
-      <table v-else class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead>
-          <tr>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Channel</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Published At</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          <tr
-            v-for="video in videosWithCaptions"
-            :key="video.video_id"
-            class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40"
-            @click="openCaptions(video)"
-          >
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ video.title }}</div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">{{ video.video_id }}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ video.channel_name }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ new Date(video.published_at).toLocaleDateString() }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-if="videosWithCaptions.length === 0" class="empty-state">
+        <div class="empty-state-title">Brak filmow z napisami</div>
+        <div class="empty-state-subtitle">Najpierw pobierz napisy na stronie Videos, potem pojawia sie tutaj.</div>
+      </div>
+      <div v-else class="overflow-auto max-h-[70vh]">
+        <table class="panel-table panel-table-sticky">
+          <thead>
+            <tr>
+              <th scope="col" class="px-6 py-3">Title</th>
+              <th scope="col" class="px-6 py-3">Channel</th>
+              <th scope="col" class="px-6 py-3">Published At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="video in videosWithCaptions"
+              :key="video.video_id"
+              class="cursor-pointer hover:bg-slate-800/50"
+              @click="openCaptions(video)"
+            >
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-slate-100">{{ video.title }}</div>
+                <div class="text-sm text-slate-400">{{ video.video_id }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{{ video.channel_name }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{{ new Date(video.published_at).toLocaleDateString() }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div v-if="showCaptionsModal" class="fixed inset-0 bg-black/70 z-50">
-      <div class="w-screen h-screen bg-white dark:bg-gray-900 flex flex-col">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div class="w-screen h-screen bg-slate-950 flex flex-col">
+        <div class="px-6 py-4 border-b border-slate-800 bg-slate-900/60">
           <div class="flex items-center justify-between gap-4">
-            <h3 class="text-xl font-semibold dark:text-gray-100">{{ modalTitle }}</h3>
-            <button @click="closeModal" class="text-gray-600 dark:text-gray-300 text-sm">Zamknij ✕</button>
+            <h3 class="text-xl font-semibold text-slate-100">{{ modalTitle }}</h3>
+            <button @click="closeModal" class="text-slate-300 hover:text-slate-100 text-sm">Zamknij ✕</button>
           </div>
 
           <div class="mt-4 grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2">
@@ -64,25 +83,25 @@
               v-model="speakerFrom"
               type="text"
               placeholder="[Speaker 1]"
-              class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="panel-input"
             />
             <input
               v-model="speakerTo"
               type="text"
               placeholder="Nowa nazwa, np. Prowadzący"
-              class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="panel-input"
             />
             <button
               @click="replaceSpeakerEverywhere"
               :disabled="!speakerFrom.trim() || !speakerTo.trim() || !editableContent.trim()"
-              class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="panel-btn-secondary"
             >
               Zamień speakera
             </button>
             <button
               @click="saveCaptions"
               :disabled="isSaving || !activeVideoId"
-              class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              class="panel-btn-primary"
             >
               {{ isSaving ? 'Zapisywanie...' : 'Zapisz zmiany' }}
             </button>
@@ -91,7 +110,7 @@
             <button
               @click="copyTranscript"
               :disabled="!editableContent.trim()"
-              class="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              class="panel-btn-secondary"
             >
               Kopiuj transkrypt
             </button>
@@ -99,20 +118,20 @@
               href="https://chatgpt.com/g/g-68989e578ce48191baeab194b91907ea-muala-adres-json-v3"
               target="_blank"
               rel="noopener noreferrer"
-              class="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+              class="panel-btn bg-emerald-600 hover:bg-emerald-500 text-white"
             >
               Open Chat GPT
             </a>
           </div>
 
-          <div v-if="saveMessage" class="mt-2 text-sm text-green-600 dark:text-green-400">{{ saveMessage }}</div>
-          <div v-if="saveError" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ saveError }}</div>
+          <div v-if="saveMessage" class="mt-2 text-sm text-emerald-300">{{ saveMessage }}</div>
+          <div v-if="saveError" class="mt-2 text-sm text-red-300">{{ saveError }}</div>
         </div>
 
         <div class="flex-1 p-6">
           <textarea
             v-model="editableContent"
-            class="w-full h-full min-h-[300px] resize-none rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-4 font-mono text-sm leading-6"
+            class="w-full h-full min-h-[300px] resize-none rounded-lg border border-slate-700 bg-slate-900 text-slate-100 p-4 font-mono text-sm leading-6 focus:border-blue-500 focus:outline-none"
           />
         </div>
       </div>
@@ -155,6 +174,47 @@ const saveError = ref('');
 const toast = useToast();
 const q = ref('');
 const sortMode = ref<'newest' | 'oldest' | 'title'>('newest');
+const searchInputRef = ref<HTMLInputElement | null>(null);
+
+const FILTERS_STORAGE_KEY = 'captions-filters-v1';
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  const tag = (el.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
+function handleSlashShortcut(event: KeyboardEvent) {
+  if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+  if (isTypingTarget(event.target)) return;
+  event.preventDefault();
+  searchInputRef.value?.focus();
+}
+
+function loadSavedFilters() {
+  if (!process.client) return;
+  try {
+    const raw = localStorage.getItem(FILTERS_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as { q?: string; sortMode?: 'newest' | 'oldest' | 'title' };
+    if (typeof parsed.q === 'string') q.value = parsed.q;
+    if (parsed.sortMode === 'newest' || parsed.sortMode === 'oldest' || parsed.sortMode === 'title') sortMode.value = parsed.sortMode;
+  } catch {
+    // Ignore localStorage parse errors.
+  }
+}
+
+function saveFilters() {
+  if (!process.client) return;
+  try {
+    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ q: q.value, sortMode: sortMode.value }));
+  } catch {
+    // Ignore localStorage write errors.
+  }
+}
 
 function renderCaptionsText(raw: unknown): string {
   if (!raw) return 'Brak napisów';
@@ -292,4 +352,15 @@ async function saveCaptions() {
     isSaving.value = false;
   }
 }
+
+onMounted(() => {
+  loadSavedFilters();
+  window.addEventListener('keydown', handleSlashShortcut);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleSlashShortcut);
+});
+
+watch([q, sortMode], saveFilters, { immediate: false });
 </script>

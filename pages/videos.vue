@@ -1,29 +1,41 @@
 <template>
   <div>
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-      <h1 class="text-3xl font-bold">Videos</h1>
+      <h1 class="text-3xl font-bold text-slate-100">Videos</h1>
       <button
         @click="triggerCheckVideos"
         :disabled="checkInProgress"
-        class="bg-blue-600 text-white px-3 py-2 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+        class="panel-btn-primary"
       >
         {{ checkInProgress ? 'Trwa sprawdzanie...' : 'Sprawdź nowe filmy' }}
       </button>
     </div>
 
-    <div v-if="pending" class="text-center">Loading...</div>
+    <div v-if="pending" class="panel-card p-6">
+      <div class="skeleton-line-lg w-48 mb-4" />
+      <div class="space-y-3">
+        <div v-for="i in 8" :key="`videos-skel-${i}`" class="grid grid-cols-7 gap-3 items-center">
+          <div class="skeleton-line h-4" />
+          <div class="skeleton-line h-4 col-span-2" />
+          <div class="skeleton-line h-4" />
+          <div class="skeleton-line h-4" />
+          <div class="skeleton-line h-4" />
+          <div class="skeleton-line h-4" />
+        </div>
+      </div>
+    </div>
     <div v-else-if="error" class="text-center text-red-500">Error loading videos.</div>
     
-    <div v-else class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-      <div class="mb-4 p-3 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40">
+    <div v-else class="panel-card p-6">
+      <div class="panel-toolbar-sticky">
         <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
-          <div class="text-sm text-gray-700 dark:text-gray-300">
+          <div class="text-sm text-slate-300">
             Zaznaczone: <span class="font-semibold">{{ selectedVideoIds.length }}</span>
           </div>
           <button
             @click="runBatchCaptions"
             :disabled="batchInProgress || selectedVideoIds.length === 0"
-            class="px-3 py-2 rounded text-sm bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            class="panel-btn-secondary"
           >
             {{ batchInProgress ? 'Przetwarzanie...' : 'Pobierz napisy dla zaznaczonych' }}
           </button>
@@ -31,12 +43,12 @@
             v-model="batchAssistantId"
             type="text"
             placeholder="assistantId do batch AI"
-            class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm md:min-w-[280px]"
+            class="panel-input text-sm md:min-w-[280px]"
           />
           <button
             @click="runBatchAI"
             :disabled="batchInProgress || selectedVideoIds.length === 0 || !batchAssistantId.trim()"
-            class="px-3 py-2 rounded text-sm bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            class="panel-btn-primary"
           >
             Batch AI dla zaznaczonych
           </button>
@@ -44,44 +56,64 @@
       </div>
 
       <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
-        <input v-model="q" type="text" placeholder="Szukaj po tytule, kanale, ID, opisie…" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400" />
-        <select v-model="filterChannelId" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+        <input ref="searchInputRef" v-model="q" type="text" placeholder="Szukaj po tytule, kanale, ID, opisie…" class="panel-input" />
+        <select v-model="filterChannelId" class="panel-input">
           <option value="">Wszystkie kanały</option>
           <option v-for="ch in channelOptions" :key="ch.channel_id" :value="ch.channel_id">{{ ch.channel_name }}</option>
         </select>
-        <select v-model="filterCaptions" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+        <select v-model="filterCaptions" class="panel-input">
           <option value="all">Napisy: wszystkie</option>
           <option value="with">Napisy: tylko z napisami</option>
           <option value="without">Napisy: tylko bez napisów</option>
         </select>
-        <select v-model="filterAI" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+        <select v-model="filterAI" class="panel-input">
           <option value="all">AI: wszystkie</option>
           <option value="with">AI: tylko z analizą</option>
           <option value="without">AI: tylko bez analizy</option>
         </select>
-        <select v-model="sortMode" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 md:col-span-2">
+        <select v-model="sortMode" class="panel-input md:col-span-2">
           <option value="date_desc">Sortuj: data (najnowsze)</option>
           <option value="date_asc">Sortuj: data (najstarsze)</option>
           <option value="title_asc">Sortuj: tytuł A-Z</option>
           <option value="title_desc">Sortuj: tytuł Z-A</option>
         </select>
       </div>
-      <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead>
-          <tr>
-            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <input type="checkbox" :checked="allVisibleSelected" @change="toggleSelectAllVisible" />
-            </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Video</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published At</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Napisy</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          <tr v-for="video in filteredVideos" :key="video.video_id">
+      <div class="mb-4 flex flex-wrap gap-2">
+        <button class="stat-chip" :class="{ 'stat-chip-active': filterCaptions === 'with' }" @click="filterCaptions = 'with'">
+          Napisy: {{ captionsReadyCount }}
+        </button>
+        <button class="stat-chip" :class="{ 'stat-chip-active': filterCaptions === 'without' }" @click="filterCaptions = 'without'">
+          Bez napisow: {{ captionsMissingCount }}
+        </button>
+        <button class="stat-chip" :class="{ 'stat-chip-active': filterAI === 'with' }" @click="filterAI = 'with'">
+          AI gotowe: {{ aiReadyCount }}
+        </button>
+        <button class="stat-chip" :class="{ 'stat-chip-active': filterAI === 'without' }" @click="filterAI = 'without'">
+          Bez AI: {{ aiMissingCount }}
+        </button>
+        <button class="stat-chip" @click="resetQuickFilters">Reset filtrow</button>
+      </div>
+      <div v-if="filteredVideos.length === 0" class="empty-state">
+        <div class="empty-state-title">Brak wynikow dla aktualnych filtrow</div>
+        <div class="empty-state-subtitle">Zmien filtry lub wyszukiwane haslo, aby zobaczyc filmy.</div>
+      </div>
+      <div v-else class="overflow-auto max-h-[70vh]">
+        <table class="panel-table panel-table-sticky">
+          <thead>
+            <tr>
+              <th scope="col" class="px-4 py-3">
+                <input type="checkbox" :checked="allVisibleSelected" @change="toggleSelectAllVisible" />
+              </th>
+              <th scope="col" class="px-6 py-3">Video</th>
+              <th scope="col" class="px-6 py-3">Channel</th>
+              <th scope="col" class="px-6 py-3">Published At</th>
+              <th scope="col" class="px-6 py-3">Type</th>
+              <th scope="col" class="px-6 py-3">Napisy</th>
+              <th scope="col" class="px-6 py-3">AI</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="video in filteredVideos" :key="video.video_id">
             <td class="px-4 py-4 whitespace-nowrap">
               <input type="checkbox" :checked="selectedSet.has(video.video_id)" @change="toggleVideoSelection(video.video_id)" />
             </td>
@@ -89,18 +121,18 @@
                 <div class="flex items-center gap-3">
                   <img :src="video.channel_thumbnail" alt="thumb" class="w-10 h-10 rounded-full"/>
                   <div>
-                    <div class="text-sm font-medium text-gray-900">
-                      <a :href="`https://www.youtube.com/watch?v=${video.video_id}`" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">{{ video.title }}</a>
+                    <div class="text-sm font-medium text-slate-100">
+                      <a :href="`https://www.youtube.com/watch?v=${video.video_id}`" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">{{ video.title }}</a>
                     </div>
-                    <div class="text-xs text-gray-500">{{ video.video_id }}</div>
+                    <div class="text-xs text-slate-400">{{ video.video_id }}</div>
                   </div>
                 </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ video.channel_name }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ new Date(video.published_at).toLocaleDateString() }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{{ video.channel_name }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{{ new Date(video.published_at).toLocaleDateString() }}</td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                    :class="video.type === 'short' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'">
+                    :class="video.type === 'short' ? 'bg-blue-900/40 text-blue-300' : 'bg-emerald-900/40 text-emerald-300'">
                     {{ video.type }}
                 </span>
             </td>
@@ -109,29 +141,30 @@
                 @click="showCaptions(video)"
                 :disabled="getCaptionState(video) === 'loading'"
                 class="underline disabled:no-underline disabled:opacity-60"
-                :class="getCaptionState(video) === 'error' ? 'text-red-600 hover:text-red-700' : getCaptionState(video) === 'done' ? 'text-green-700 hover:text-green-800' : 'text-gray-700 hover:text-gray-900'"
+                :class="getCaptionState(video) === 'error' ? 'text-red-400 hover:text-red-300' : getCaptionState(video) === 'done' ? 'text-emerald-300 hover:text-emerald-200' : 'text-slate-300 hover:text-slate-100'"
               >
                 {{ captionButtonLabel(video) }}
               </button>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
-              <button @click="showAI(video)" class="text-gray-700 hover:text-gray-900 underline">AI</button>
+              <button @click="showAI(video)" class="text-slate-300 hover:text-slate-100 underline">AI</button>
             </td>
-          </tr>
-        </tbody>
-      </table>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </div>
   
   <!-- Modals: Captions / AI -->
-  <div v-if="showCaptionsModal || showAIModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeModals">
-    <div class="bg-white rounded-lg shadow p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+  <div v-if="showCaptionsModal || showAIModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" @click.self="closeModals">
+    <div class="panel-card p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-semibold">{{ modalTitle }}</h3>
-        <button @click="closeModals" class="text-gray-600">✕</button>
+        <h3 class="text-xl font-semibold text-slate-100">{{ modalTitle }}</h3>
+        <button @click="closeModals" class="text-slate-400 hover:text-slate-200">✕</button>
       </div>
-      <div class="whitespace-pre-wrap text-sm text-gray-800">{{ modalContent }}</div>
+      <div class="whitespace-pre-wrap text-sm text-slate-200">{{ modalContent }}</div>
     </div>
   </div>
 </template>
@@ -141,6 +174,7 @@ const q = ref('');
 const checkInProgress = ref(false);
 const captionsStatusByVideo = ref<Record<string, 'loading' | 'done' | 'error' | undefined>>({});
 const toast = useToast();
+const searchInputRef = ref<HTMLInputElement | null>(null);
 const filterChannelId = ref('');
 const filterCaptions = ref<'all' | 'with' | 'without'>('all');
 const filterAI = ref<'all' | 'with' | 'without'>('all');
@@ -164,11 +198,81 @@ const channelOptions = computed(() => {
 });
 
 const selectedSet = computed(() => new Set(selectedVideoIds.value));
+const allVideos = computed<any[]>(() => (videos.value || []) as any[]);
+const captionsReadyCount = computed(() => allVideos.value.filter((v: any) => !!v.captions).length);
+const captionsMissingCount = computed(() => allVideos.value.length - captionsReadyCount.value);
+const aiReadyCount = computed(() => allVideos.value.filter((v: any) => !!v.response).length);
+const aiMissingCount = computed(() => allVideos.value.length - aiReadyCount.value);
 const allVisibleSelected = computed(() => {
   const ids = filteredVideos.value.map((v: any) => v.video_id).filter(Boolean);
   if (ids.length === 0) return false;
   return ids.every((id: string) => selectedSet.value.has(id));
 });
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  const tag = (el.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
+function handleSlashShortcut(event: KeyboardEvent) {
+  if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+  if (isTypingTarget(event.target)) return;
+  event.preventDefault();
+  searchInputRef.value?.focus();
+}
+
+const FILTERS_STORAGE_KEY = 'videos-filters-v1';
+
+function loadSavedFilters() {
+  if (!process.client) return;
+  try {
+    const raw = localStorage.getItem(FILTERS_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as {
+      q?: string;
+      filterChannelId?: string;
+      filterCaptions?: 'all' | 'with' | 'without';
+      filterAI?: 'all' | 'with' | 'without';
+      sortMode?: 'date_desc' | 'date_asc' | 'title_asc' | 'title_desc';
+    };
+    if (typeof parsed.q === 'string') q.value = parsed.q;
+    if (typeof parsed.filterChannelId === 'string') filterChannelId.value = parsed.filterChannelId;
+    if (parsed.filterCaptions === 'all' || parsed.filterCaptions === 'with' || parsed.filterCaptions === 'without') filterCaptions.value = parsed.filterCaptions;
+    if (parsed.filterAI === 'all' || parsed.filterAI === 'with' || parsed.filterAI === 'without') filterAI.value = parsed.filterAI;
+    if (parsed.sortMode === 'date_desc' || parsed.sortMode === 'date_asc' || parsed.sortMode === 'title_asc' || parsed.sortMode === 'title_desc') sortMode.value = parsed.sortMode;
+  } catch {
+    // Ignore localStorage parse errors.
+  }
+}
+
+function saveFilters() {
+  if (!process.client) return;
+  try {
+    localStorage.setItem(
+      FILTERS_STORAGE_KEY,
+      JSON.stringify({
+        q: q.value,
+        filterChannelId: filterChannelId.value,
+        filterCaptions: filterCaptions.value,
+        filterAI: filterAI.value,
+        sortMode: sortMode.value,
+      })
+    );
+  } catch {
+    // Ignore localStorage write errors.
+  }
+}
+
+function resetQuickFilters() {
+  filterCaptions.value = 'all';
+  filterAI.value = 'all';
+  filterChannelId.value = '';
+  q.value = '';
+}
 
 const filteredVideos = computed(() => {
   const list = videos.value || [];
@@ -362,4 +466,15 @@ function closeModals() {
   showCaptionsModal.value = false;
   showAIModal.value = false;
 }
+
+onMounted(() => {
+  loadSavedFilters();
+  window.addEventListener('keydown', handleSlashShortcut);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleSlashShortcut);
+});
+
+watch([q, filterChannelId, filterCaptions, filterAI, sortMode], saveFilters, { immediate: false });
 </script>

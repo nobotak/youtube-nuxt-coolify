@@ -1,15 +1,18 @@
 import { analyzeTranscript } from '~/server/utils/openai';
+import { assertAssistantAllowed, sanitizeTranscriptForAnalysis } from '~/server/utils/openai-policy';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { transcript, assistantId } = body;
+  const assistantId = String(body?.assistantId || '').trim();
+  const transcript = sanitizeTranscriptForAnalysis(body?.transcript);
 
-  if (!transcript || !assistantId) {
+  if (!assistantId) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'transcript and assistantId are required',
+      statusMessage: 'assistantId is required',
     });
   }
+  assertAssistantAllowed(assistantId);
 
   try {
     const analysis = await analyzeTranscript(transcript, assistantId);
