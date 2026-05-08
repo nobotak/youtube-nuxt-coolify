@@ -15,6 +15,34 @@
     <div v-else-if="error" class="text-center text-red-500">Error loading videos.</div>
     
     <div v-else class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div class="mb-4 p-3 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40">
+        <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+          <div class="text-sm text-gray-700 dark:text-gray-300">
+            Zaznaczone: <span class="font-semibold">{{ selectedVideoIds.length }}</span>
+          </div>
+          <button
+            @click="runBatchCaptions"
+            :disabled="batchInProgress || selectedVideoIds.length === 0"
+            class="px-3 py-2 rounded text-sm bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ batchInProgress ? 'Przetwarzanie...' : 'Pobierz napisy dla zaznaczonych' }}
+          </button>
+          <input
+            v-model="batchAssistantId"
+            type="text"
+            placeholder="assistantId do batch AI"
+            class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm md:min-w-[280px]"
+          />
+          <button
+            @click="runBatchAI"
+            :disabled="batchInProgress || selectedVideoIds.length === 0 || !batchAssistantId.trim()"
+            class="px-3 py-2 rounded text-sm bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Batch AI dla zaznaczonych
+          </button>
+        </div>
+      </div>
+
       <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
         <input v-model="q" type="text" placeholder="Szukaj po tytule, kanale, ID, opisie…" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400" />
         <select v-model="filterChannelId" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
@@ -41,6 +69,9 @@
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead>
           <tr>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <input type="checkbox" :checked="allVisibleSelected" @change="toggleSelectAllVisible" />
+            </th>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Video</th>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published At</th>
@@ -51,6 +82,9 @@
         </thead>
         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
           <tr v-for="video in filteredVideos" :key="video.video_id">
+            <td class="px-4 py-4 whitespace-nowrap">
+              <input type="checkbox" :checked="selectedSet.has(video.video_id)" @change="toggleVideoSelection(video.video_id)" />
+            </td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center gap-3">
                   <img :src="video.channel_thumbnail" alt="thumb" class="w-10 h-10 rounded-full"/>
@@ -111,6 +145,9 @@ const filterChannelId = ref('');
 const filterCaptions = ref<'all' | 'with' | 'without'>('all');
 const filterAI = ref<'all' | 'with' | 'without'>('all');
 const sortMode = ref<'date_desc' | 'date_asc' | 'title_asc' | 'title_desc'>('date_desc');
+const selectedVideoIds = ref<string[]>([]);
+const batchInProgress = ref(false);
+const batchAssistantId = ref('');
 
 const channelOptions = computed(() => {
   const list = videos.value || [];
@@ -124,6 +161,13 @@ const channelOptions = computed(() => {
   return Array.from(map.entries())
     .map(([channel_id, channel_name]) => ({ channel_id, channel_name }))
     .sort((a, b) => a.channel_name.localeCompare(b.channel_name, 'pl'));
+});
+
+const selectedSet = computed(() => new Set(selectedVideoIds.value));
+const allVisibleSelected = computed(() => {
+  const ids = filteredVideos.value.map((v: any) => v.video_id).filter(Boolean);
+  if (ids.length === 0) return false;
+  return ids.every((id: string) => selectedSet.value.has(id));
 });
 
 const filteredVideos = computed(() => {
@@ -174,6 +218,73 @@ async function triggerCheckVideos() {
     }
   } finally {
     checkInProgress.value = false;
+  }
+}
+
+function toggleVideoSelection(videoId: string) {
+  if (selectedSet.value.has(videoId)) {
+    selectedVideoIds.value = selectedVideoIds.value.filter((id) => id !== videoId);
+  } else {
+    selectedVideoIds.value = [...selectedVideoIds.value, videoId];
+  }
+}
+
+function toggleSelectAllVisible() {
+  const visible = filteredVideos.value.map((v: any) => String(v.video_id || '')).filter(Boolean);
+  if (visible.length === 0) return;
+  if (allVisibleSelected.value) {
+    selectedVideoIds.value = selectedVideoIds.value.filter((id) => !visible.includes(id));
+    return;
+  }
+  const set = new Set(selectedVideoIds.value);
+  for (const id of visible) set.add(id);
+  selectedVideoIds.value = Array.from(set);
+}
+
+async function runBatchCaptions() {
+  if (selectedVideoIds.value.length === 0) return;
+  batchInProgress.value = true;
+  try {
+    const result = await $fetch<any>('/api/videos/batch', {
+      method: 'POST',
+      body: {
+        action: 'captions',
+        videoIds: selectedVideoIds.value,
+      },
+    });
+    await refresh();
+    toast.success(`Napisy batch: zaktualizowano ${result.updated}/${result.processed}.`);
+    if (result.failed?.length) {
+      toast.error(`Błędy batch napisów: ${result.failed.length}.`);
+    }
+  } catch (e: any) {
+    toast.error(e?.statusMessage || e?.message || 'Batch napisów nie powiódł się.');
+  } finally {
+    batchInProgress.value = false;
+  }
+}
+
+async function runBatchAI() {
+  if (selectedVideoIds.value.length === 0 || !batchAssistantId.value.trim()) return;
+  batchInProgress.value = true;
+  try {
+    const result = await $fetch<any>('/api/videos/batch', {
+      method: 'POST',
+      body: {
+        action: 'ai',
+        assistantId: batchAssistantId.value.trim(),
+        videoIds: selectedVideoIds.value,
+      },
+    });
+    await refresh();
+    toast.success(`Batch AI: zaktualizowano ${result.updated}/${result.processed}.`);
+    if (result.failed?.length) {
+      toast.error(`Błędy batch AI: ${result.failed.length}.`);
+    }
+  } catch (e: any) {
+    toast.error(e?.statusMessage || e?.message || 'Batch AI nie powiódł się.');
+  } finally {
+    batchInProgress.value = false;
   }
 }
 
