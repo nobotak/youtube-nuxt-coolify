@@ -117,9 +117,22 @@ function initializeDB() {
     );
   `;
 
+  const createPushSubscriptionsTable = `
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      endpoint TEXT UNIQUE NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
   db.exec(createChannelsTable);
   db.exec(createVideosTable);
   db.exec(createAppSettingsTable);
+  db.exec(createPushSubscriptionsTable);
   ensureChannelsTimeWindowColumns();
 
   console.log('Database tables are ready.');

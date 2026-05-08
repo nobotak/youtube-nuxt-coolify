@@ -3,6 +3,7 @@ import { getLatestVideos } from '~/server/utils/youtube';
 import { parseISO8601Duration } from '~/server/utils/formatters';
 import { getCaptions } from '~/server/utils/captions';
 import { recordLog } from '~/server/utils/logs';
+import { sendPushToAll } from '~/server/utils/push';
 
 function isWithinAllowedHours(channel: any): boolean {
   const fromHour = Number(channel?.check_from_hour);
@@ -35,6 +36,7 @@ function markChannelChecked(channelId: string): void {
 export async function checkChannelVideos(channel: any) {
   console.log(`Checking videos for channel: ${channel.channel_name}`);
   try { recordLog('check_channel_start', channel.channel_name || channel.channel_id); } catch {}
+  let insertedCount = 0;
   
   try {
     const videos = await getLatestVideos(channel.channel_id, channel.api_key);
@@ -101,6 +103,7 @@ export async function checkChannelVideos(channel: any) {
       });
 
       insertMany(rowsToInsert);
+      insertedCount = rowsToInsert.length;
       
     } else {
       console.log(`No new videos for channel ${channel.channel_name}.`);
@@ -110,20 +113,38 @@ export async function checkChannelVideos(channel: any) {
     console.error(`Error checking videos for channel ${channel.channel_name}:`, error);
     try { recordLog('check_channel_error', String(error)); } catch {}
   }
+  return insertedCount;
 }
 
 export async function checkAllActiveChannels() {
     console.log('Checking all active channels...');
     try { recordLog('check_all_start'); } catch {}
     const channels = db.prepare('SELECT * FROM channels WHERE is_active = 1').all();
+    let totalInserted = 0;
+    let channelsWithNew = 0;
     for (const channel of channels) {
         if (!isWithinAllowedHours(channel)) {
             console.log(`Skipping channel outside allowed hours: ${channel.channel_name || channel.channel_id}`);
             try { recordLog('check_channel_skipped_window', channel.channel_name || channel.channel_id); } catch {}
             continue;
         }
-        await checkChannelVideos(channel);
+        const inserted = await checkChannelVideos(channel);
+        if (inserted > 0) {
+            totalInserted += inserted;
+            channelsWithNew += 1;
+        }
         markChannelChecked(channel.channel_id);
+    }
+    if (totalInserted > 0) {
+        try {
+            await sendPushToAll({
+                title: 'Nowe filmy w YouTube Manager',
+                body: `Wykryto ${totalInserted} nowych filmów w ${channelsWithNew} kanałach.`,
+                url: '/videos',
+            });
+        } catch (error) {
+            try { recordLog('push_send_error', String(error)); } catch {}
+        }
     }
     console.log('Finished checking all active channels.');
     try { recordLog('check_all_done'); } catch {}
@@ -132,10 +153,27 @@ export async function checkAllActiveChannels() {
 export async function checkDueActiveChannels() {
     const nowMs = Date.now();
     const channels = db.prepare('SELECT * FROM channels WHERE is_active = 1').all();
+    let totalInserted = 0;
+    let channelsWithNew = 0;
     for (const channel of channels) {
         if (!isWithinAllowedHours(channel)) continue;
         if (!isChannelDue(channel, nowMs)) continue;
-        await checkChannelVideos(channel);
+        const inserted = await checkChannelVideos(channel);
+        if (inserted > 0) {
+            totalInserted += inserted;
+            channelsWithNew += 1;
+        }
         markChannelChecked(channel.channel_id);
+    }
+    if (totalInserted > 0) {
+        try {
+            await sendPushToAll({
+                title: 'Nowe filmy w YouTube Manager',
+                body: `Scheduler wykrył ${totalInserted} nowych filmów w ${channelsWithNew} kanałach.`,
+                url: '/videos',
+            });
+        } catch (error) {
+            try { recordLog('push_send_error', String(error)); } catch {}
+        }
     }
 }

@@ -32,6 +32,46 @@
     </div>
 
     <div class="panel-card p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-slate-100">Push notifications</h2>
+      <p class="panel-subtitle mb-4">
+        Powiadomienia o nowych filmach oraz zdarzeniach systemowych.
+      </p>
+      <div v-if="!pushSupported" class="text-sm text-amber-300">
+        Ta przeglądarka nie obsługuje push notifications.
+      </div>
+      <div v-else class="space-y-3">
+        <div class="text-xs text-slate-400">
+          Status: {{ pushPermissionLabel }} | Subskrypcja: {{ pushSubscribed ? 'aktywna' : 'brak' }}
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            v-if="!pushSubscribed"
+            class="panel-btn-primary"
+            :disabled="pushBusy"
+            @click="enablePush"
+          >
+            {{ pushBusy ? 'Trwa...' : 'Włącz push' }}
+          </button>
+          <button
+            v-else
+            class="panel-btn-secondary"
+            :disabled="pushBusy"
+            @click="disablePush"
+          >
+            {{ pushBusy ? 'Trwa...' : 'Wyłącz push' }}
+          </button>
+          <button
+            class="panel-btn-secondary"
+            :disabled="pushBusy || !pushSubscribed"
+            @click="sendPushTest"
+          >
+            Wyślij test
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-card p-6 mb-8">
       <h2 class="text-xl font-semibold mb-4 text-slate-100">Database restore</h2>
       <p class="panel-subtitle mb-4">Wgraj plik .db aby podmienić bieżącą bazę (aplikacja automatycznie przełączy połączenie).</p>
       <form @submit.prevent="onUpload">
@@ -111,6 +151,25 @@ const autoCheckEnabled = ref(false)
 const autoCheckSaving = ref(false)
 const autoCheckMessage = ref('')
 const autoCheckSuccess = ref(false)
+const {
+  isSupported: pushSupportedRef,
+  permission: pushPermissionRef,
+  isSubscribed: pushSubscribedRef,
+  busy: pushBusyRef,
+  subscribe: subscribePush,
+  unsubscribe: unsubscribePush,
+  sendTest: sendPushTestApi,
+  syncStatus: syncPushStatus,
+} = usePushNotifications()
+const pushSupported = computed(() => pushSupportedRef.value)
+const pushSubscribed = computed(() => pushSubscribedRef.value)
+const pushBusy = computed(() => pushBusyRef.value)
+const pushPermissionLabel = computed(() => {
+  const value = pushPermissionRef.value
+  if (value === 'granted') return 'dozwolone'
+  if (value === 'denied') return 'zablokowane'
+  return 'oczekuje na zgode'
+})
 
 watchEffect(() => {
   autoCheckEnabled.value = !!autoCheckData.value?.enabled
@@ -176,6 +235,35 @@ async function saveAutoCheckSetting() {
     toast.error(autoCheckMessage.value)
   } finally {
     autoCheckSaving.value = false
+  }
+}
+
+async function enablePush() {
+  try {
+    await subscribePush()
+    await syncPushStatus()
+    toast.success('Push notifications zostały włączone.')
+  } catch (e: any) {
+    toast.error(e?.statusMessage || e?.message || 'Nie udało się włączyć push notifications.')
+  }
+}
+
+async function disablePush() {
+  try {
+    await unsubscribePush()
+    await syncPushStatus()
+    toast.success('Push notifications zostały wyłączone.')
+  } catch (e: any) {
+    toast.error(e?.statusMessage || e?.message || 'Nie udało się wyłączyć push notifications.')
+  }
+}
+
+async function sendPushTest() {
+  try {
+    await sendPushTestApi()
+    toast.success('Wysłano testowe powiadomienie push.')
+  } catch (e: any) {
+    toast.error(e?.statusMessage || e?.message || 'Nie udało się wysłać testu push.')
   }
 }
 </script>
