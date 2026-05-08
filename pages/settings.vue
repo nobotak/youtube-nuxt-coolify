@@ -94,6 +94,7 @@ const MAX_UPLOAD_MB = 25
 const { data: logsData, pending: logsPending, refresh: refreshLogs } = await useFetch('/api/logs?limit=20')
 const { data: autoCheckData, refresh: refreshAutoCheck } = await useFetch('/api/settings/auto-check')
 const logs = computed(() => logsData.value || [])
+const toast = useToast()
 const autoCheckEnabled = ref(false)
 const autoCheckSaving = ref(false)
 const autoCheckMessage = ref('')
@@ -133,10 +134,12 @@ async function onUpload() {
     console.log('[settings] Upload response:', res)
     success.value = true
     message.value = 'Baza została podmieniona. Odśwież widok.'
+    toast.success('Baza została podmieniona. Odśwież widok.')
   } catch (e: any) {
     console.error('[settings] Upload failed:', e)
     success.value = false
     message.value = e?.data?.statusMessage || 'Błąd podczas wgrywania bazy'
+    toast.error(message.value)
   } finally {
     uploading.value = false
     progressText.value = ''
@@ -154,9 +157,11 @@ async function saveAutoCheckSetting() {
     await refreshAutoCheck()
     autoCheckSuccess.value = true
     autoCheckMessage.value = 'Zapisano ustawienie.'
+    toast.success('Zapisano ustawienie auto-check.')
   } catch (e: any) {
     autoCheckSuccess.value = false
     autoCheckMessage.value = e?.data?.statusMessage || 'Nie udało się zapisać ustawienia.'
+    toast.error(autoCheckMessage.value)
   } finally {
     autoCheckSaving.value = false
   }

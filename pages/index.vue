@@ -79,8 +79,6 @@
           </button>
         </div>
       </div>
-      <div v-if="checkMessage" class="mb-3 text-sm text-green-600 dark:text-green-400">{{ checkMessage }}</div>
-      <div v-if="checkErrorMessage" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ checkErrorMessage }}</div>
 
       <!-- Cards view -->
       <div v-if="channelsPending" class="text-center">Ładowanie kanałów...</div>
@@ -240,6 +238,8 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '~/composables/useToast';
+
 const {
   data: dashboard,
   pending: dashboardPending,
@@ -295,23 +295,20 @@ function countAIByChannel(channelId: string): number {
 }
 
 const checkInProgress = ref(false);
-const checkMessage = ref('');
-const checkErrorMessage = ref('');
+const toast = useToast();
 
 async function triggerCheckVideos() {
   checkInProgress.value = true;
-  checkMessage.value = '';
-  checkErrorMessage.value = '';
   try {
     await $fetch('/api/tasks/check-videos', { method: 'POST' });
-    checkMessage.value = 'Uruchomiono sprawdzanie filmów. Odświeżono dashboard.';
+    toast.success('Uruchomiono sprawdzanie filmów. Odświeżono dashboard.');
     await refreshDashboard();
   } catch (e) {
     const statusCode = Number((e as any)?.statusCode || (e as any)?.response?.status || 0);
     if (statusCode === 409) {
-      checkErrorMessage.value = 'Sprawdzanie już trwa. Poczekaj, aż obecny proces się zakończy.';
+      toast.info('Sprawdzanie już trwa. Poczekaj, aż obecny proces się zakończy.');
     } else {
-      checkErrorMessage.value = 'Nie udało się uruchomić sprawdzania filmów.';
+      toast.error('Nie udało się uruchomić sprawdzania filmów.');
     }
   } finally {
     checkInProgress.value = false;

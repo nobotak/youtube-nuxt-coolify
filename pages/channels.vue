@@ -54,6 +54,7 @@
         <div class="mt-4 flex items-center justify-between pt-3 border-t">
           <div class="text-xs text-gray-500">
             Aktualizacja: {{ formatDateTime(channel.last_check) }}
+            <div class="mt-1">Następne: {{ formatDateTime(getNextCheckAt(channel)) }}</div>
           </div>
           <div class="flex items-center gap-2 text-gray-600">
             <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">
@@ -75,14 +76,15 @@
 
     <!-- List view -->
     <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-      <div class="hidden md:grid grid-cols-5 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
+      <div class="hidden md:grid grid-cols-6 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
         <div>Kanał</div>
         <div>Status</div>
         <div>Filmów</div>
         <div>Napisy</div>
+        <div>Następne</div>
         <div>Akcje</div>
       </div>
-      <div v-for="channel in channels" :key="channel.channel_id" class="grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 border-t">
+      <div v-for="channel in channels" :key="channel.channel_id" class="grid grid-cols-1 md:grid-cols-6 gap-4 px-6 py-4 border-t">
         <div class="flex items-center gap-3">
           <img :src="channel.thumbnail_url" alt="thumb" class="w-10 h-10 rounded-full"/>
           <div class="min-w-0">
@@ -98,6 +100,7 @@
         </div>
         <div class="md:text-center text-sm">{{ countVideosByChannel(channel.channel_id) }}</div>
         <div class="md:text-center text-sm">{{ countCaptionsByChannel(channel.channel_id) }}</div>
+        <div class="md:text-center text-sm text-gray-600 dark:text-gray-300">{{ formatDateTime(getNextCheckAt(channel)) }}</div>
         <div class="md:text-center flex items-center gap-3">
           <button @click="viewChannel(channel.channel_id)" class="hover:text-gray-800" title="Podgląd">
             <span class="material-symbols-outlined text-base">visibility</span>
@@ -231,6 +234,7 @@
 <script setup lang="ts">
 const { data: channels, pending, error, refresh } = await useFetch('/api/channels');
 const { data: videos } = await useFetch('/api/videos');
+const toast = useToast();
 
 const showAddChannelModal = ref(false);
 const newChannel = ref({
@@ -264,6 +268,42 @@ function formatDateTime(value?: string) {
   try { return new Date(value).toLocaleString('pl-PL'); } catch { return String(value); }
 }
 
+function getNextCheckAt(channel: any): string | undefined {
+  if (!channel?.is_active) return undefined;
+  const intervalMs = Math.max(1, Number(channel?.check_interval || 1800000));
+  const nowMs = Date.now();
+  const lastCheckMs = new Date(channel?.last_check || 0).getTime();
+  let nextMs = Number.isFinite(lastCheckMs) && lastCheckMs > 0 ? (lastCheckMs + intervalMs) : nowMs;
+  if (nextMs < nowMs) nextMs = nowMs;
+  nextMs = alignToWindow(nextMs, channel?.check_from_hour, channel?.check_to_hour);
+  return new Date(nextMs).toISOString();
+}
+
+function alignToWindow(ts: number, fromRaw: unknown, toRaw: unknown): number {
+  const from = Number(fromRaw);
+  const to = Number(toRaw);
+  const hasFrom = Number.isInteger(from) && from >= 0 && from <= 23;
+  const hasTo = Number.isInteger(to) && to >= 0 && to <= 23;
+  if (!hasFrom || !hasTo || from === to) return ts;
+
+  const isWithin = (d: Date) => {
+    const h = d.getHours();
+    if (from < to) return h >= from && h < to;
+    return h >= from || h < to;
+  };
+
+  const base = new Date(ts);
+  if (isWithin(base)) return ts;
+
+  for (let dayOffset = 0; dayOffset <= 2; dayOffset += 1) {
+    const candidate = new Date(base);
+    candidate.setDate(base.getDate() + dayOffset);
+    candidate.setHours(from, 0, 0, 0);
+    if (candidate.getTime() >= ts) return candidate.getTime();
+  }
+  return ts;
+}
+
 function viewChannel(channelId: string) {
   const url = `https://youtube.com/channel/${channelId}`;
   window.open(url, '_blank');
@@ -273,7 +313,10 @@ async function refreshChannelNow(channelId: string) {
   try {
     await $fetch(`/api/channels/${channelId}/check`, { method: 'POST' });
     await refresh();
-  } catch {}
+    toast.success('Uruchomiono sprawdzanie kanału.');
+  } catch {
+    toast.error('Nie udało się uruchomić sprawdzania kanału.');
+  }
 }
 
 const editing = ref<any | null>(null);
@@ -311,31 +354,41 @@ async function addChannel() {
   const fromHour = timeWindowEnabled.value ? normalizeHour(timeWindowFromHour.value) : null;
   const toHour = timeWindowEnabled.value ? normalizeHour(timeWindowToHour.value) : null;
 
-  await $fetch('/api/channels', {
-    method: 'POST',
-    body: {
-      ...newChannel.value,
-      check_interval: checkIntervalMs,
-      check_from_hour: fromHour,
-      check_to_hour: toHour,
-    },
-  });
-  showAddChannelModal.value = false;
-  newChannel.value = { channel_id: '' };
-  intervalValue.value = 30;
-  intervalUnit.value = 'min';
-  timeWindowEnabled.value = false;
-  timeWindowFromHour.value = 16;
-  timeWindowToHour.value = 22;
-  refresh();
+  try {
+    await $fetch('/api/channels', {
+      method: 'POST',
+      body: {
+        ...newChannel.value,
+        check_interval: checkIntervalMs,
+        check_from_hour: fromHour,
+        check_to_hour: toHour,
+      },
+    });
+    showAddChannelModal.value = false;
+    newChannel.value = { channel_id: '' };
+    intervalValue.value = 30;
+    intervalUnit.value = 'min';
+    timeWindowEnabled.value = false;
+    timeWindowFromHour.value = 16;
+    timeWindowToHour.value = 22;
+    await refresh();
+    toast.success('Kanał został zapisany.');
+  } catch (err: any) {
+    toast.error(err?.statusMessage || err?.message || 'Nie udało się dodać kanału.');
+  }
 }
 
 async function deleteChannel(channelId: string) {
     if (confirm('Are you sure you want to delete this channel?')) {
-        await $fetch(`/api/channels/${channelId}`, {
-            method: 'DELETE',
-        });
-        refresh();
+        try {
+          await $fetch(`/api/channels/${channelId}`, {
+              method: 'DELETE',
+          });
+          await refresh();
+          toast.success('Kanał został usunięty.');
+        } catch (err: any) {
+          toast.error(err?.statusMessage || err?.message || 'Nie udało się usunąć kanału.');
+        }
     }
 }
 
@@ -351,9 +404,14 @@ async function saveEdit() {
     check_to_hour: toHour,
     is_active: !!editing.value.is_active,
   };
-  await $fetch(`/api/channels/${editing.value.channel_id}`, { method: 'PUT', body: payload });
-  editing.value = null;
-  await refresh();
+  try {
+    await $fetch(`/api/channels/${editing.value.channel_id}`, { method: 'PUT', body: payload });
+    editing.value = null;
+    await refresh();
+    toast.success('Zapisano zmiany kanału.');
+  } catch (err: any) {
+    toast.error(err?.statusMessage || err?.message || 'Nie udało się zapisać zmian.');
+  }
 }
 
 function cancelEdit() {

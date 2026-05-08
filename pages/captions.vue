@@ -6,6 +6,22 @@
     <div v-else-if="error" class="text-center text-red-500">Error loading videos.</div>
 
     <div v-else class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <input
+          v-model="q"
+          type="text"
+          placeholder="Szukaj po tytule, kanale, ID..."
+          class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        />
+        <select
+          v-model="sortMode"
+          class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        >
+          <option value="newest">Najnowsze</option>
+          <option value="oldest">Najstarsze</option>
+          <option value="title">Tytuł A-Z</option>
+        </select>
+      </div>
       <div v-if="videosWithCaptions.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
         Brak filmów z napisami.
       </div>
@@ -108,7 +124,22 @@ const { data: videos, pending, error } = await useFetch('/api/videos');
 
 const videosWithCaptions = computed(() => {
   if (!videos.value) return [];
-  return videos.value.filter((v: any) => v.captions && v.captions !== 'null');
+  const filtered = videos.value.filter((v: any) => v.captions && v.captions !== 'null')
+    .filter((v: any) => {
+      const term = q.value.trim().toLowerCase();
+      if (!term) return true;
+      return (v.title || '').toLowerCase().includes(term)
+        || (v.channel_name || '').toLowerCase().includes(term)
+        || (v.video_id || '').toLowerCase().includes(term);
+    });
+
+  if (sortMode.value === 'title') {
+    return [...filtered].sort((a: any, b: any) => String(a.title || '').localeCompare(String(b.title || ''), 'pl'));
+  }
+  if (sortMode.value === 'oldest') {
+    return [...filtered].sort((a: any, b: any) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime());
+  }
+  return [...filtered].sort((a: any, b: any) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
 });
 
 const showCaptionsModal = ref(false);
@@ -121,6 +152,9 @@ const speakerTo = ref('');
 const isSaving = ref(false);
 const saveMessage = ref('');
 const saveError = ref('');
+const toast = useToast();
+const q = ref('');
+const sortMode = ref<'newest' | 'oldest' | 'title'>('newest');
 
 function renderCaptionsText(raw: unknown): string {
   if (!raw) return 'Brak napisów';
@@ -182,6 +216,7 @@ function replaceSpeakerEverywhere() {
   editableContent.value = editableContent.value.split(from).join(to);
   saveMessage.value = 'Zmieniono nazwy speakerów w całym transkrypcie.';
   saveError.value = '';
+  toast.success('Zmieniono nazwy speakerów w całym transkrypcie.');
 }
 
 async function copyTranscript() {
@@ -201,8 +236,10 @@ async function copyTranscript() {
     }
     saveMessage.value = 'Skopiowano transkrypt do schowka.';
     saveError.value = '';
+    toast.success('Skopiowano transkrypt do schowka.');
   } catch (err: any) {
     saveError.value = err?.message || 'Nie udało się skopiować transkryptu.';
+    toast.error(saveError.value);
   }
 }
 
@@ -247,8 +284,10 @@ async function saveCaptions() {
     }
 
     saveMessage.value = 'Zapisano zmiany w bazie.';
+    toast.success('Zapisano zmiany w bazie.');
   } catch (err: any) {
     saveError.value = err?.statusMessage || err?.message || 'Nie udało się zapisać zmian.';
+    toast.error(saveError.value);
   } finally {
     isSaving.value = false;
   }

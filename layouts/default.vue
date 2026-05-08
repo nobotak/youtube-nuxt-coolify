@@ -47,5 +47,6 @@
         <slot />
       </div>
     </main>
+    <AppToastStack />
   </div>
 </template>

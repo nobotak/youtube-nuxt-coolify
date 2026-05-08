@@ -10,8 +10,6 @@
         {{ checkInProgress ? 'Trwa sprawdzanie...' : 'Sprawdź nowe filmy' }}
       </button>
     </div>
-    <div v-if="checkMessage" class="mb-3 text-sm text-green-600 dark:text-green-400">{{ checkMessage }}</div>
-    <div v-if="checkErrorMessage" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ checkErrorMessage }}</div>
 
     <div v-if="pending" class="text-center">Loading...</div>
     <div v-else-if="error" class="text-center text-red-500">Error loading videos.</div>
@@ -87,9 +85,8 @@
 const { data: videos, pending, error, refresh } = await useFetch('/api/videos');
 const q = ref('');
 const checkInProgress = ref(false);
-const checkMessage = ref('');
-const checkErrorMessage = ref('');
 const captionsStatusByVideo = ref<Record<string, 'loading' | 'done' | 'error' | undefined>>({});
+const toast = useToast();
 
 const filteredVideos = computed(() => {
   const list = videos.value || [];
@@ -106,18 +103,16 @@ const filteredVideos = computed(() => {
 
 async function triggerCheckVideos() {
   checkInProgress.value = true;
-  checkMessage.value = '';
-  checkErrorMessage.value = '';
   try {
     await $fetch('/api/tasks/check-videos', { method: 'POST' });
-    checkMessage.value = 'Uruchomiono sprawdzanie filmów.';
+    toast.success('Uruchomiono sprawdzanie filmów.');
     await refresh();
   } catch (e) {
     const statusCode = Number((e as any)?.statusCode || (e as any)?.response?.status || 0);
     if (statusCode === 409) {
-      checkErrorMessage.value = 'Sprawdzanie już trwa. Poczekaj, aż obecny proces się zakończy.';
+      toast.info('Sprawdzanie już trwa. Poczekaj, aż obecny proces się zakończy.');
     } else {
-      checkErrorMessage.value = 'Nie udało się uruchomić sprawdzania filmów.';
+      toast.error('Nie udało się uruchomić sprawdzania filmów.');
     }
   } finally {
     checkInProgress.value = false;
@@ -184,6 +179,7 @@ async function showCaptions(video: any) {
   } catch (err: any) {
     modalContent.value = `Nie udało się pobrać transkrypcji.\n${err?.statusMessage || err?.message || ''}`.trim();
     captionsStatusByVideo.value[video.video_id] = 'error';
+    toast.error('Nie udało się pobrać transkrypcji.');
   }
 }
 
