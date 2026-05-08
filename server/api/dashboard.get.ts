@@ -67,6 +67,11 @@ export default defineEventHandler(() => {
 
   const activeChannels = channels.reduce((sum, ch) => sum + (ch.is_active ? 1 : 0), 0);
   const usage = getTodayUsageSummary();
+  const dailyQuotaRaw = Number(process.env.YOUTUBE_API_DAILY_QUOTA || 10_000);
+  const dailyQuota = Number.isFinite(dailyQuotaRaw) && dailyQuotaRaw > 0 ? dailyQuotaRaw : 10_000;
+  const usagePercent = Math.min(100, Math.max(0, Math.round((usage.used / dailyQuota) * 100)));
+  const remaining = Math.max(0, dailyQuota - usage.used);
+  const warningLevel = usagePercent >= 95 ? 'critical' : usagePercent >= 80 ? 'warning' : 'ok';
 
   const expectedBreakdown = channels
     .filter((ch) => ch.is_active)
@@ -95,6 +100,12 @@ export default defineEventHandler(() => {
       totalAI: Number(totals?.totalAI) || 0,
     },
     apiUsage: usage,
+    apiQuota: {
+      dailyLimit: dailyQuota,
+      remaining,
+      usagePercent,
+      warningLevel,
+    },
     apiExpected: {
       totalPerDay: expectedTotal,
       breakdown: expectedBreakdown,

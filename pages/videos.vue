@@ -15,8 +15,28 @@
     <div v-else-if="error" class="text-center text-red-500">Error loading videos.</div>
     
     <div v-else class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-      <div class="mb-4">
+      <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
         <input v-model="q" type="text" placeholder="Szukaj po tytule, kanale, ID, opisie…" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400" />
+        <select v-model="filterChannelId" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+          <option value="">Wszystkie kanały</option>
+          <option v-for="ch in channelOptions" :key="ch.channel_id" :value="ch.channel_id">{{ ch.channel_name }}</option>
+        </select>
+        <select v-model="filterCaptions" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+          <option value="all">Napisy: wszystkie</option>
+          <option value="with">Napisy: tylko z napisami</option>
+          <option value="without">Napisy: tylko bez napisów</option>
+        </select>
+        <select v-model="filterAI" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+          <option value="all">AI: wszystkie</option>
+          <option value="with">AI: tylko z analizą</option>
+          <option value="without">AI: tylko bez analizy</option>
+        </select>
+        <select v-model="sortMode" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 md:col-span-2">
+          <option value="date_desc">Sortuj: data (najnowsze)</option>
+          <option value="date_asc">Sortuj: data (najstarsze)</option>
+          <option value="title_asc">Sortuj: tytuł A-Z</option>
+          <option value="title_desc">Sortuj: tytuł Z-A</option>
+        </select>
       </div>
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead>
@@ -87,18 +107,56 @@ const q = ref('');
 const checkInProgress = ref(false);
 const captionsStatusByVideo = ref<Record<string, 'loading' | 'done' | 'error' | undefined>>({});
 const toast = useToast();
+const filterChannelId = ref('');
+const filterCaptions = ref<'all' | 'with' | 'without'>('all');
+const filterAI = ref<'all' | 'with' | 'without'>('all');
+const sortMode = ref<'date_desc' | 'date_asc' | 'title_asc' | 'title_desc'>('date_desc');
+
+const channelOptions = computed(() => {
+  const list = videos.value || [];
+  const map = new Map<string, string>();
+  for (const v of list as any[]) {
+    if (!v?.channel_id) continue;
+    if (!map.has(v.channel_id)) {
+      map.set(v.channel_id, v.channel_name || v.channel_id);
+    }
+  }
+  return Array.from(map.entries())
+    .map(([channel_id, channel_name]) => ({ channel_id, channel_name }))
+    .sort((a, b) => a.channel_name.localeCompare(b.channel_name, 'pl'));
+});
 
 const filteredVideos = computed(() => {
   const list = videos.value || [];
   const term = q.value.trim().toLowerCase();
-  if (!term) return list;
-  return list.filter((v: any) => {
+  const filtered = list.filter((v: any) => {
     const title = (v.title || '').toLowerCase();
     const channel = (v.channel_name || '').toLowerCase();
     const id = (v.video_id || '').toLowerCase();
     const desc = (v.snippet?.description || v.description || '').toLowerCase();
-    return title.includes(term) || channel.includes(term) || id.includes(term) || desc.includes(term);
+    const matchesSearch = !term || title.includes(term) || channel.includes(term) || id.includes(term) || desc.includes(term);
+    const matchesChannel = !filterChannelId.value || v.channel_id === filterChannelId.value;
+    const hasCaptions = !!v.captions;
+    const matchesCaptions = filterCaptions.value === 'all'
+      || (filterCaptions.value === 'with' && hasCaptions)
+      || (filterCaptions.value === 'without' && !hasCaptions);
+    const hasAI = !!v.response;
+    const matchesAI = filterAI.value === 'all'
+      || (filterAI.value === 'with' && hasAI)
+      || (filterAI.value === 'without' && !hasAI);
+    return matchesSearch && matchesChannel && matchesCaptions && matchesAI;
   });
+
+  if (sortMode.value === 'title_asc') {
+    return [...filtered].sort((a: any, b: any) => String(a.title || '').localeCompare(String(b.title || ''), 'pl'));
+  }
+  if (sortMode.value === 'title_desc') {
+    return [...filtered].sort((a: any, b: any) => String(b.title || '').localeCompare(String(a.title || ''), 'pl'));
+  }
+  if (sortMode.value === 'date_asc') {
+    return [...filtered].sort((a: any, b: any) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime());
+  }
+  return [...filtered].sort((a: any, b: any) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
 });
 
 async function triggerCheckVideos() {

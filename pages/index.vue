@@ -188,6 +188,22 @@
         <div v-else-if="statsError" class="text-center text-red-500">Błąd ładowania statystyk.</div>
         <div v-else>
           <div class="mb-2 text-sm text-gray-700 dark:text-gray-300">Zużyte dzisiaj: <span class="font-semibold">{{ statsData.apiUsage.used }}</span> jednostek</div>
+          <div class="mb-2 text-sm text-gray-700 dark:text-gray-300">
+            Limit dzienny: <span class="font-semibold">{{ statsData.apiQuota.dailyLimit }}</span>,
+            pozostało: <span class="font-semibold">{{ statsData.apiQuota.remaining }}</span>
+          </div>
+          <div class="mb-3">
+            <div class="w-full h-2 rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div
+                class="h-full transition-all"
+                :class="statsData.apiQuota.warningLevel === 'critical' ? 'bg-red-500' : statsData.apiQuota.warningLevel === 'warning' ? 'bg-yellow-500' : 'bg-green-500'"
+                :style="{ width: `${statsData.apiQuota.usagePercent}%` }"
+              />
+            </div>
+            <div class="mt-1 text-xs" :class="statsData.apiQuota.warningLevel === 'critical' ? 'text-red-600 dark:text-red-400' : statsData.apiQuota.warningLevel === 'warning' ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'">
+              Wykorzystanie quota: {{ statsData.apiQuota.usagePercent }}%
+            </div>
+          </div>
           <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">Szacowane zapytania/dobę (na podstawie aktywnych kanałów): <span class="font-semibold">{{ statsData.apiExpected.totalPerDay }}</span></div>
           <div class="overflow-x-auto">
             <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
@@ -281,6 +297,7 @@ const channelStatsById = computed<Record<string, { videos: number; captions: num
 const recentVideos = computed(() => dashboard.value?.recentVideos || []);
 const statsData = computed(() => ({
   apiUsage: dashboard.value?.apiUsage || { used: 0, breakdown: [] },
+  apiQuota: dashboard.value?.apiQuota || { dailyLimit: 10_000, remaining: 10_000, usagePercent: 0, warningLevel: 'ok' },
   apiExpected: dashboard.value?.apiExpected || { totalPerDay: 0, breakdown: [] },
 }));
 
